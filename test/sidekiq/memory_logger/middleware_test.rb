@@ -7,8 +7,8 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     @middleware = Sidekiq::MemoryLogger::Middleware.new
     @job = {"class" => "TestJob"}
     @queue = "test_queue"
-    Sidekiq::MemoryLogger.callback = nil
-    Sidekiq::MemoryLogger.logger = nil
+    Sidekiq::MemoryLogger.configuration.callback = nil
+    Sidekiq::MemoryLogger.configuration.logger = nil
   end
 
   def test_middleware_calls_callback_when_configured
@@ -58,5 +58,24 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     end
 
     assert_equal 1, callback_calls.length
+  end
+
+  def test_middleware_handles_callback_exceptions
+    log_output = StringIO.new
+    test_logger = Logger.new(log_output)
+    Sidekiq::MemoryLogger.configuration.logger = test_logger
+
+    # Configure a callback that raises an exception
+    Sidekiq::MemoryLogger.configure do |config|
+      config.callback = ->(job_class, queue, memory_diff) do
+        raise StandardError, "callback error"
+      end
+    end
+
+    # Middleware should not raise, but should log the error
+    @middleware.call(nil, @job, @queue) { sleep 0.01 }
+
+    log_content = log_output.string
+    assert_includes log_content, "Sidekiq memory logger callback failed: callback error"
   end
 end

@@ -5,8 +5,8 @@ require "test_helper"
 class TestSidekiqMemoryLoggerRails < Minitest::Test
   def setup
     # Reset configuration before each test
-    Sidekiq::MemoryLogger.logger = nil
-    Sidekiq::MemoryLogger.callback = nil
+    Sidekiq::MemoryLogger.configuration.logger = nil
+    Sidekiq::MemoryLogger.configuration.callback = nil
   end
 
   def test_initializer_logic_sets_rails_logger_when_defined
@@ -20,10 +20,10 @@ class TestSidekiqMemoryLoggerRails < Minitest::Test
     Object.const_set(:Rails, rails_class)
 
     # Simulate the railtie initializer logic
-    Sidekiq::MemoryLogger.logger = Rails.logger if defined?(Rails.logger)
+    Sidekiq::MemoryLogger.configuration.logger = Rails.logger if defined?(Rails.logger)
 
     # Verify the logger was set
-    assert_equal rails_logger, Sidekiq::MemoryLogger.logger
+    assert_equal rails_logger, Sidekiq::MemoryLogger.configuration.logger
   ensure
     # Clean up the Rails constant
     Object.send(:remove_const, :Rails) if defined?(Rails)
@@ -35,10 +35,10 @@ class TestSidekiqMemoryLoggerRails < Minitest::Test
     Object.const_set(:Rails, rails_class)
 
     # Simulate the railtie initializer logic
-    Sidekiq::MemoryLogger.logger = Rails.logger if defined?(Rails.logger)
+    Sidekiq::MemoryLogger.configuration.logger = Rails.logger if defined?(Rails.logger)
 
     # Verify the logger was not set
-    assert_nil Sidekiq::MemoryLogger.logger
+    assert_nil Sidekiq::MemoryLogger.configuration.logger
   ensure
     # Clean up the Rails constant
     Object.send(:remove_const, :Rails) if defined?(Rails)
@@ -53,10 +53,10 @@ class TestSidekiqMemoryLoggerRails < Minitest::Test
     end
 
     # Simulate the railtie initializer logic
-    Sidekiq::MemoryLogger.logger = Rails.logger if defined?(Rails.logger)
+    Sidekiq::MemoryLogger.configuration.logger = Rails.logger if defined?(Rails.logger)
 
     # Verify the logger was not set (should be nil since Rails.logger is not defined)
-    assert_nil Sidekiq::MemoryLogger.logger
+    assert_nil Sidekiq::MemoryLogger.configuration.logger
   ensure
     # Restore Rails if it was defined
     Object.const_set(:Rails, rails_backup) if rails_backup

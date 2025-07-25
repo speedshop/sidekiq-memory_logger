@@ -4,8 +4,8 @@ require "test_helper"
 
 class TestSidekiqMemoryLogger < Minitest::Test
   def setup
-    Sidekiq::MemoryLogger.callback = nil
-    Sidekiq::MemoryLogger.logger = nil
+    Sidekiq::MemoryLogger.configuration.callback = nil
+    Sidekiq::MemoryLogger.configuration.logger = nil
   end
 
   def test_that_it_has_a_version_number
@@ -18,8 +18,8 @@ class TestSidekiqMemoryLogger < Minitest::Test
       config.callback = "test_callback"
     end
 
-    assert_equal "test_logger", Sidekiq::MemoryLogger.logger
-    assert_equal "test_callback", Sidekiq::MemoryLogger.callback
+    assert_equal "test_logger", Sidekiq::MemoryLogger.configuration.logger
+    assert_equal "test_callback", Sidekiq::MemoryLogger.configuration.callback
   end
 
   def test_configuration_object
@@ -33,12 +33,12 @@ class TestSidekiqMemoryLogger < Minitest::Test
     assert_same config1, config2
   end
 
-  def test_direct_attribute_access
-    Sidekiq::MemoryLogger.logger = "direct_logger"
+  def test_direct_configuration_access
+    Sidekiq::MemoryLogger.configuration.logger = "direct_logger"
     assert_equal "direct_logger", Sidekiq::MemoryLogger.configuration.logger
 
     callback = ->(job, queue, memory) { "test" }
-    Sidekiq::MemoryLogger.callback = callback
+    Sidekiq::MemoryLogger.configuration.callback = callback
     assert_equal callback, Sidekiq::MemoryLogger.configuration.callback
   end
 end

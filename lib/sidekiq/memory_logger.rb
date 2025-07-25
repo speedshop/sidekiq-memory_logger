@@ -36,22 +36,6 @@ module Sidekiq
       def configure
         yield configuration
       end
-
-      def callback
-        configuration.callback
-      end
-
-      def logger
-        configuration.logger
-      end
-
-      def callback=(value)
-        configuration.callback = value
-      end
-
-      def logger=(value)
-        configuration.logger = value
-      end
     end
 
     class Middleware
@@ -66,10 +50,14 @@ module Sidekiq
           end_mem = GetProcessMem.new.mb
           memory_diff = end_mem - start_mem
 
-          if MemoryLogger.callback
-            MemoryLogger.callback.call(job["class"], queue, memory_diff)
+          if MemoryLogger.configuration.callback
+            begin
+              MemoryLogger.configuration.callback.call(job["class"], queue, memory_diff)
+            rescue => e
+              MemoryLogger.configuration.logger.error("Sidekiq memory logger callback failed: #{e.message}")
+            end
           else
-            MemoryLogger.logger.info("Job #{job["class"]} on queue #{queue} used #{memory_diff} MB")
+            MemoryLogger.configuration.logger.info("Job #{job["class"]} on queue #{queue} used #{memory_diff} MB")
           end
         end
       end
