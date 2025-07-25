@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class TestSidekiqMemoryLoggerRailtie < Minitest::Test
+class TestSidekiqMemoryLoggerRails < Minitest::Test
   def setup
     # Reset configuration before each test
     Sidekiq::MemoryLogger.logger = nil
@@ -62,13 +62,24 @@ class TestSidekiqMemoryLoggerRailtie < Minitest::Test
     Object.const_set(:Rails, rails_backup) if rails_backup
   end
 
-  def test_railtie_file_structure
-    # Test that the railtie file exists and has the expected structure
-    railtie_path = File.expand_path("../../../lib/sidekiq/memory_logger/railtie.rb", __dir__)
-    assert File.exist?(railtie_path), "Railtie file should exist"
+  def test_configuration_uses_rails_logger_when_available
+    # Test that the configuration automatically detects and uses Rails.logger
+    rails_logger = "mock_rails_logger"
+    rails_class = Class.new do
+      define_singleton_method(:logger) { rails_logger }
+      define_singleton_method(:respond_to?) { |method| method == :logger }
+    end
 
-    railtie_content = File.read(railtie_path)
-    assert_includes railtie_content, "class Railtie < Rails::Railtie"
-    # Railtie no longer needs to set the logger - Configuration handles it automatically
+    # Temporarily define Rails constant
+    Object.const_set(:Rails, rails_class)
+
+    # Create new configuration (should detect Rails.logger)
+    config = Sidekiq::MemoryLogger::Configuration.new
+
+    # Verify Rails.logger was set as default
+    assert_equal rails_logger, config.logger
+  ensure
+    # Clean up the Rails constant
+    Object.send(:remove_const, :Rails) if defined?(Rails)
   end
 end

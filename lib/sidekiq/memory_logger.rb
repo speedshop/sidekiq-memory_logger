@@ -4,10 +4,6 @@ require "get_process_mem"
 require "sidekiq"
 require_relative "memory_logger/version"
 
-if defined?(Rails)
-  require_relative "memory_logger/railtie"
-end
-
 module Sidekiq
   module MemoryLogger
     class Error < StandardError; end
