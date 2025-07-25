@@ -12,11 +12,38 @@ module Sidekiq
   module MemoryLogger
     class Error < StandardError; end
 
+    class Configuration
+      attr_accessor :logger, :callback
+
+      def initialize
+        @logger = nil
+        @callback = nil
+      end
+    end
+
     class << self
-      attr_accessor :callback, :logger
+      def configuration
+        @configuration ||= Configuration.new
+      end
 
       def configure
-        yield self
+        yield configuration
+      end
+
+      def callback
+        configuration.callback
+      end
+
+      def logger
+        configuration.logger
+      end
+
+      def callback=(value)
+        configuration.callback = value
+      end
+
+      def logger=(value)
+        configuration.logger = value
       end
     end
 

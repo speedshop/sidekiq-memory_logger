@@ -32,7 +32,7 @@ Add the middleware to your Sidekiq server configuration:
 ```ruby
 Sidekiq.configure_server do |config|
   config.server_middleware do |chain|
-    chain.add Sidekiq::Memory::Logger::Middleware
+    chain.add Sidekiq::MemoryLogger::Middleware
   end
 end
 ```
@@ -48,7 +48,7 @@ Job MyJob on queue default used 15.2 MB
 Configure custom logging behavior:
 
 ```ruby
-Sidekiq::Memory::Logger.configure do |config|
+Sidekiq::MemoryLogger.configure do |config|
   # Use a custom logger (overrides default Rails.logger detection)
   config.logger = MyCustomLogger.new
   
