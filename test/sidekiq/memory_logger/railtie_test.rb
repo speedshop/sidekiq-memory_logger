@@ -64,12 +64,11 @@ class TestSidekiqMemoryLoggerRailtie < Minitest::Test
 
   def test_railtie_file_structure
     # Test that the railtie file exists and has the expected structure
-    railtie_path = File.expand_path("../../../../lib/sidekiq/memory_logger/memory_logger/railtie.rb", __dir__)
+    railtie_path = File.expand_path("../../../lib/sidekiq/memory_logger/railtie.rb", __dir__)
     assert File.exist?(railtie_path), "Railtie file should exist"
 
     railtie_content = File.read(railtie_path)
     assert_includes railtie_content, "class Railtie < Rails::Railtie"
-    assert_includes railtie_content, "Sidekiq::MemoryLogger.logger = Rails.logger"
-    assert_includes railtie_content, "if defined?(Rails.logger)"
+    # Railtie no longer needs to set the logger - Configuration handles it automatically
   end
 end

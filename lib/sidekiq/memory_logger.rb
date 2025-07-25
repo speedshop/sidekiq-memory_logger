@@ -2,10 +2,10 @@
 
 require "get_process_mem"
 require "sidekiq"
-require_relative "memory_logger/memory_logger/version"
+require_relative "memory_logger/version"
 
 if defined?(Rails)
-  require_relative "memory_logger/memory_logger/railtie"
+  require_relative "memory_logger/railtie"
 end
 
 module Sidekiq
@@ -16,8 +16,19 @@ module Sidekiq
       attr_accessor :logger, :callback
 
       def initialize
-        @logger = nil
+        @logger = default_logger
         @callback = nil
+      end
+
+      private
+
+      def default_logger
+        if defined?(Rails) && Rails.respond_to?(:logger)
+          Rails.logger
+        else
+          require "logger"
+          ::Logger.new($stdout)
+        end
       end
     end
 
@@ -48,6 +59,8 @@ module Sidekiq
     end
 
     class Middleware
+      include Sidekiq::ServerMiddleware
+
       def call(worker_instance, job, queue)
         start_mem = GetProcessMem.new.mb
 
@@ -60,20 +73,8 @@ module Sidekiq
           if MemoryLogger.callback
             MemoryLogger.callback.call(job["class"], queue, memory_diff)
           else
-            logger = MemoryLogger.logger || default_logger
-            logger.info("Job #{job["class"]} on queue #{queue} used #{memory_diff} MB")
+            MemoryLogger.logger.info("Job #{job["class"]} on queue #{queue} used #{memory_diff} MB")
           end
-        end
-      end
-
-      private
-
-      def default_logger
-        if defined?(Rails)
-          Rails.logger
-        else
-          require "logger"
-          ::Logger.new($stdout)
         end
       end
     end

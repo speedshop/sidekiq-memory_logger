@@ -59,15 +59,4 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
 
     assert_equal 1, callback_calls.length
   end
-
-  def test_default_logger_without_rails
-    log_output = StringIO.new
-
-    @middleware.stub :default_logger, Logger.new(log_output) do
-      @middleware.call(nil, @job, @queue) { sleep 0.01 }
-    end
-
-    log_content = log_output.string
-    assert_includes log_content, "Job TestJob on queue test_queue used"
-  end
 end

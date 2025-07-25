@@ -8,7 +8,8 @@ class TestSidekiqMemoryLoggerConfiguration < Minitest::Test
   end
 
   def test_default_values
-    assert_nil @config.logger
+    refute_nil @config.logger
+    assert_kind_of Logger, @config.logger
     assert_nil @config.callback
   end
 
