@@ -24,9 +24,9 @@ class TestSidekiqMemoryLogger < Minitest::Test
   def test_reset
     Sidekiq::Memory::Logger.logger = "test"
     Sidekiq::Memory::Logger.callback = "test"
-    
+
     Sidekiq::Memory::Logger.reset!
-    
+
     assert_nil Sidekiq::Memory::Logger.logger
     assert_nil Sidekiq::Memory::Logger.callback
   end

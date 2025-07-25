@@ -29,13 +29,13 @@ module Sidekiq
       class Middleware
         def call(worker_instance, job, queue)
           start_mem = GetProcessMem.new.mb
-          
+
           begin
             yield
           ensure
             end_mem = GetProcessMem.new.mb
             memory_diff = end_mem - start_mem
-            
+
             if Logger.callback
               Logger.callback.call(job["class"], queue, memory_diff)
             else
