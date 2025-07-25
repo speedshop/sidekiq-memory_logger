@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   spec.name = "sidekiq-memory-logger"
   spec.version = Sidekiq::MemoryLogger::VERSION
   spec.authors = ["Nate Berkopec"]
-  spec.email = ["nate.berkopec@gmail.com"]
+  spec.email = ["nate.berkopec@speedshop.co"]
 
   spec.summary = "Sidekiq server middleware for logging memory usage per job"
   spec.description = "A Sidekiq server middleware that tracks RSS memory usage for each job and provides configurable logging and reporting options"
