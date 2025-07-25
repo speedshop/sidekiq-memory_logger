@@ -6,6 +6,8 @@ A Sidekiq server middleware that tracks RSS memory usage for each job and provid
 
 This middleware measures the process RSS (Resident Set Size) memory before and after each Sidekiq job runs, then logs or reports the difference. This helps you identify memory-hungry jobs and track memory usage patterns across your Sidekiq workers.
 
+Memory measurement is handled by the [get_process_mem](https://github.com/zombocom/get_process_mem) gem, which works reliably across all platforms (Windows, macOS, Linux) and functions both inside and outside of containers.
+
 Example log output:
 ```
 Job MyJob on queue default used 15.2 MB
