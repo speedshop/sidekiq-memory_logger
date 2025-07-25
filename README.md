@@ -72,6 +72,14 @@ Sidekiq::MemoryLogger.configure do |config|
     #   'sidekiq.job_class' => job_class,
     #   'sidekiq.queue' => queue
     # })
+    
+    # Datadog tracing example - add attributes to current span
+    # span = Datadog::Tracing.active_span
+    # if span
+    #   span.set_tag('sidekiq.memory_usage_mb', memory_diff_mb)
+    #   span.set_tag('sidekiq.job_class', job_class)
+    #   span.set_tag('sidekiq.queue', queue)
+    # end
   end
 end
 ```
