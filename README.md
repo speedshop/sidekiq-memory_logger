@@ -73,6 +73,18 @@ Sidekiq::MemoryLogger.configure do |config|
     #   'sidekiq.queue' => queue
     # })
   end
+  
+  # If you want to use a callback AND still log, you can write your own log:
+  config.callback = ->(job_class, queue, memory_diff_mb) do
+    # Your custom metrics collection
+    StatsD.histogram('sidekiq.memory_usage', memory_diff_mb, tags: {
+      job_class: job_class, 
+      queue: queue
+    })
+    
+    # Still log the memory usage
+    Rails.logger.info "Job #{job_class} on queue #{queue} used #{memory_diff_mb} MB"
+  end
 end
 ```
 
