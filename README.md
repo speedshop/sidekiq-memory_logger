@@ -2,24 +2,23 @@
 
 A Sidekiq server middleware that tracks RSS memory usage for each job and provides configurable logging and reporting options.
 
+## How it works
+
+This middleware measures the process RSS (Resident Set Size) memory before and after each Sidekiq job runs, then logs or reports the difference. This helps you identify memory-hungry jobs and track memory usage patterns across your Sidekiq workers.
+
+Example log output:
+```
+Job MyJob on queue default used 15.2 MB
+```
+
+The memory difference can be positive (job increased memory usage) or negative (job decreased memory usage, possibly due to garbage collection).
+
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
 gem 'sidekiq-memory-logger'
-```
-
-And then execute:
-
-```bash
-bundle install
-```
-
-Or install it yourself as:
-
-```bash
-gem install sidekiq-memory-logger
 ```
 
 ## Usage
