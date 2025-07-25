@@ -4,16 +4,16 @@ require "test_helper"
 
 class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
   def setup
-    @middleware = Sidekiq::Memory::Logger::Middleware.new
+    @middleware = Sidekiq::MemoryLogger::Middleware.new
     @job = {"class" => "TestJob"}
     @queue = "test_queue"
-    Sidekiq::Memory::Logger.reset!
+    Sidekiq::MemoryLogger.reset!
   end
 
   def test_middleware_calls_callback_when_configured
     callback_calls = []
 
-    Sidekiq::Memory::Logger.configure do |config|
+    Sidekiq::MemoryLogger.configure do |config|
       config.callback = ->(job_class, queue, memory_diff) do
         callback_calls << [job_class, queue, memory_diff]
       end
@@ -32,7 +32,7 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     log_output = StringIO.new
     test_logger = Logger.new(log_output)
 
-    Sidekiq::Memory::Logger.configure do |config|
+    Sidekiq::MemoryLogger.configure do |config|
       config.logger = test_logger
     end
 
@@ -46,7 +46,7 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
   def test_middleware_handles_exceptions
     callback_calls = []
 
-    Sidekiq::Memory::Logger.configure do |config|
+    Sidekiq::MemoryLogger.configure do |config|
       config.callback = ->(job_class, queue, memory_diff) do
         callback_calls << [job_class, queue, memory_diff]
       end

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative "lib/sidekiq/memory/logger/version"
+require_relative "lib/sidekiq/memory_logger/memory_logger/version"
 
 Gem::Specification.new do |spec|
   spec.name = "sidekiq-memory-logger"
-  spec.version = Sidekiq::Memory::Logger::VERSION
+  spec.version = Sidekiq::MemoryLogger::VERSION
   spec.authors = ["Nate Berkopec"]
   spec.email = ["nate.berkopec@gmail.com"]
 
