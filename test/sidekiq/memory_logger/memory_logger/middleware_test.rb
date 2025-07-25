@@ -7,7 +7,8 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     @middleware = Sidekiq::MemoryLogger::Middleware.new
     @job = {"class" => "TestJob"}
     @queue = "test_queue"
-    Sidekiq::MemoryLogger.reset!
+    Sidekiq::MemoryLogger.callback = nil
+    Sidekiq::MemoryLogger.logger = nil
   end
 
   def test_middleware_calls_callback_when_configured

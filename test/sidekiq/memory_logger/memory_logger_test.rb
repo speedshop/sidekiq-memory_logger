@@ -4,7 +4,8 @@ require "test_helper"
 
 class TestSidekiqMemoryLogger < Minitest::Test
   def setup
-    Sidekiq::MemoryLogger.reset!
+    Sidekiq::MemoryLogger.callback = nil
+    Sidekiq::MemoryLogger.logger = nil
   end
 
   def test_that_it_has_a_version_number
@@ -19,15 +20,5 @@ class TestSidekiqMemoryLogger < Minitest::Test
 
     assert_equal "test_logger", Sidekiq::MemoryLogger.logger
     assert_equal "test_callback", Sidekiq::MemoryLogger.callback
-  end
-
-  def test_reset
-    Sidekiq::MemoryLogger.logger = "test"
-    Sidekiq::MemoryLogger.callback = "test"
-
-    Sidekiq::MemoryLogger.reset!
-
-    assert_nil Sidekiq::MemoryLogger.logger
-    assert_nil Sidekiq::MemoryLogger.callback
   end
 end

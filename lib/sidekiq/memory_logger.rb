@@ -18,11 +18,6 @@ module Sidekiq
       def configure
         yield self
       end
-
-      def reset!
-        @callback = nil
-        @logger = nil
-      end
     end
 
     class Middleware
