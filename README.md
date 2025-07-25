@@ -52,11 +52,24 @@ Sidekiq::Memory::Logger.configure do |config|
   
   # OR use a custom callback (this disables logging entirely)
   config.callback = ->(job_class, queue, memory_diff_mb) do
-    # Report to your monitoring system
+    # StatsD example
     StatsD.histogram('sidekiq.memory_usage', memory_diff_mb, tags: {
       job_class: job_class, 
       queue: queue
     })
+    
+    # Dogstatsd example
+    # $dogstatsd.histogram('sidekiq.memory_usage', memory_diff_mb, tags: [
+    #   "job_class:#{job_class}",
+    #   "queue:#{queue}"
+    # ])
+    
+    # New Relic example
+    # NewRelic::Agent.record_metric('Custom/Sidekiq/MemoryUsage', memory_diff_mb)
+    # NewRelic::Agent.add_custom_attributes({
+    #   'sidekiq.job_class' => job_class,
+    #   'sidekiq.queue' => queue
+    # })
   end
 end
 ```
