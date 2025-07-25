@@ -15,6 +15,11 @@ Job MyJob on queue default used 15.2 MB
 
 The memory difference can be positive (job increased memory usage) or negative (job decreased memory usage, possibly due to garbage collection).
 
+> [!WARNING]
+> This gem has limitations when multiple jobs are running concurrently in the same process (which is how Sidekiq works by default unless concurrency is set to 1). Each job runs on its own thread, but all threads share the same process heap. Since memory measurement is performed at the process level, concurrent job execution can lead to inaccurate memory attribution - the measured memory usage may include memory from other jobs running simultaneously.
+>
+> **Workaround:** To work around this limitation, collect a large enough sample size and use 95th percentile or maximum metrics along with detailed logging to identify which job classes consistently reproduce memory issues. This statistical approach will help you identify problematic jobs despite the measurement noise from concurrent execution.
+
 ## Installation
 
 Add this line to your application's Gemfile:
