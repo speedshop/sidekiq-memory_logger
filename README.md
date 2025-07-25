@@ -74,7 +74,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/nateberkopec/sidekiq-memory-logger.
+Bug reports and pull requests are welcome on GitHub at https://github.com/speedshop/sidekiq-memory_logger.
 
 ## License
 

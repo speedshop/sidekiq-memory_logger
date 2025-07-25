@@ -10,13 +10,13 @@ Gem::Specification.new do |spec|
 
   spec.summary = "Sidekiq server middleware for logging memory usage per job"
   spec.description = "A Sidekiq server middleware that tracks RSS memory usage for each job and provides configurable logging and reporting options"
-  spec.homepage = "https://github.com/nateberkopec/sidekiq-memory-logger"
+  spec.homepage = "https://github.com/speedshop/sidekiq-memory_logger"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 2.7.0"
 
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "https://github.com/nateberkopec/sidekiq-memory-logger"
+  spec.metadata["source_code_uri"] = "https://github.com/speedshop/sidekiq-memory_logger"
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
