@@ -67,7 +67,7 @@ Sidekiq::MemoryLogger.configure do |config|
     # ])
     
     # New Relic example
-    # NewRelic::Agent.record_metric('Custom/Sidekiq/MemoryUsage', memory_diff_mb)
+    # NewRelic::Agent.record_metric("Custom/Sidekiq/MemoryUsage/#{queue}/#{job_class}", memory_diff_mb)
     # NewRelic::Agent.add_custom_attributes({
     #   'sidekiq.job_class' => job_class,
     #   'sidekiq.queue' => queue
