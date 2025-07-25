@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.description = "A Sidekiq server middleware that tracks RSS memory usage for each job and provides configurable logging and reporting options"
   spec.homepage = "https://github.com/nateberkopec/sidekiq-memory-logger"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.2.0"
+  spec.required_ruby_version = ">= 2.7.0"
 
   spec.metadata["allowed_push_host"] = "https://rubygems.org"
   spec.metadata["homepage_uri"] = spec.homepage
