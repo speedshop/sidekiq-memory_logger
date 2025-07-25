@@ -4,11 +4,13 @@ require "test_helper"
 
 class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
   def setup
-    @middleware = Sidekiq::MemoryLogger::Middleware.new
     @job = {"class" => "TestJob"}
     @queue = "test_queue"
+    # Reset configuration first
     Sidekiq::MemoryLogger.configuration.callback = nil
     Sidekiq::MemoryLogger.configuration.logger = nil
+    # Create middleware after resetting config so it gets clean config
+    @middleware = Sidekiq::MemoryLogger::Middleware.new
   end
 
   def test_middleware_calls_callback_when_configured
@@ -20,7 +22,9 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
       end
     end
 
-    @middleware.call(nil, @job, @queue) { sleep 0.01 }
+    # Create new middleware after configuration change
+    middleware = Sidekiq::MemoryLogger::Middleware.new
+    middleware.call(nil, @job, @queue) { sleep 0.01 }
 
     assert_equal 1, callback_calls.length
     job_class, queue, memory_diff = callback_calls.first
@@ -37,7 +41,9 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
       config.logger = test_logger
     end
 
-    @middleware.call(nil, @job, @queue) { sleep 0.01 }
+    # Create new middleware after configuration change
+    middleware = Sidekiq::MemoryLogger::Middleware.new
+    middleware.call(nil, @job, @queue) { sleep 0.01 }
 
     log_content = log_output.string
     assert_includes log_content, "Job TestJob on queue test_queue used"
@@ -53,8 +59,11 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
       end
     end
 
+    # Create new middleware after configuration change
+    middleware = Sidekiq::MemoryLogger::Middleware.new
+
     assert_raises(RuntimeError) do
-      @middleware.call(nil, @job, @queue) { raise "test error" }
+      middleware.call(nil, @job, @queue) { raise "test error" }
     end
 
     assert_equal 1, callback_calls.length
@@ -63,17 +72,20 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
   def test_middleware_handles_callback_exceptions
     log_output = StringIO.new
     test_logger = Logger.new(log_output)
-    Sidekiq::MemoryLogger.configuration.logger = test_logger
 
     # Configure a callback that raises an exception
     Sidekiq::MemoryLogger.configure do |config|
+      config.logger = test_logger
       config.callback = ->(job_class, queue, memory_diff) do
         raise StandardError, "callback error"
       end
     end
 
+    # Create new middleware after configuration change
+    middleware = Sidekiq::MemoryLogger::Middleware.new
+
     # Middleware should not raise, but should log the error
-    @middleware.call(nil, @job, @queue) { sleep 0.01 }
+    middleware.call(nil, @job, @queue) { sleep 0.01 }
 
     log_content = log_output.string
     assert_includes log_content, "Sidekiq memory logger callback failed: callback error"
