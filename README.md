@@ -13,12 +13,10 @@ Example log output:
 Job MyJob on queue default used 15.2 MB
 ```
 
-The memory difference can be positive (job increased memory usage) or negative (job decreased memory usage, possibly due to garbage collection).
-
 > [!WARNING]
 > This gem has limitations when multiple jobs are running concurrently in the same process (which is how Sidekiq works by default unless concurrency is set to 1). Each job runs on its own thread, but all threads share the same process heap. Since memory measurement is performed at the process level, concurrent job execution can lead to inaccurate memory attribution - the measured memory usage may include memory from other jobs running simultaneously.
 >
-> **Workaround:** To work around this limitation, collect a large enough sample size and use 95th percentile or maximum metrics along with detailed logging to identify which job classes consistently reproduce memory issues. This statistical approach will help you identify problematic jobs despite the measurement noise from concurrent execution.
+> **Workaround:** To work around this limitation, collect a large enough sample size and use 95th percentile or maximum metrics along with detailed logging to identify which job classes _consistently_ reproduce memory issues. This statistical approach will help you identify problematic jobs despite the measurement noise from concurrent execution.
 
 ## Installation
 
@@ -42,11 +40,7 @@ Sidekiq.configure_server do |config|
 end
 ```
 
-By default, this will log memory usage for each job to Rails.logger (if Rails is detected) or stdout:
-
-```
-Job MyJob on queue default used 15.2 MB
-```
+By default, this will log memory usage for each job to Rails.logger (if Rails is detected) or stdout.
 
 ### Configuration
 
@@ -54,7 +48,6 @@ Configure custom logging behavior:
 
 ```ruby
 Sidekiq::MemoryLogger.configure do |config|
-  # Use a custom logger (overrides default Rails.logger detection)
   config.logger = MyCustomLogger.new
   
   # OR use a custom callback (this disables logging entirely)
@@ -100,21 +93,3 @@ Sidekiq::MemoryLogger.configure do |config|
   end
 end
 ```
-
-### Rails Integration
-
-For Rails applications, the middleware automatically uses `Rails.logger` by default. No additional configuration needed.
-
-## Development
-
-After checking out the repo, run `bin/setup` to install dependencies. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
-
-## Contributing
-
-Bug reports and pull requests are welcome on GitHub at https://github.com/speedshop/sidekiq-memory_logger.
-
-## License
-
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
