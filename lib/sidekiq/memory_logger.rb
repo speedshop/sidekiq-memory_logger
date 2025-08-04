@@ -13,7 +13,7 @@ module Sidekiq
 
       def initialize
         @logger = default_logger
-        @callback = nil
+        @callback = default_callback
       end
 
       private
@@ -26,6 +26,12 @@ module Sidekiq
       def fallback_logger
         require "logger"
         ::Logger.new($stdout)
+      end
+
+      def default_callback
+        ->(job_class, queue, memory_diff_mb) do
+          @logger.info("Job #{job_class} on queue #{queue} used #{memory_diff_mb} MB")
+        end
       end
     end
 
@@ -55,14 +61,10 @@ module Sidekiq
           end_mem = GetProcessMem.new.mb
           memory_diff = end_mem - start_mem
 
-          if @config.callback
-            begin
-              @config.callback.call(job["class"], queue, memory_diff)
-            rescue => e
-              @config.logger.error("Sidekiq memory logger callback failed: #{e.message}")
-            end
-          else
-            @config.logger.info("Job #{job["class"]} on queue #{queue} used #{memory_diff} MB")
+          begin
+            @config.callback.call(job["class"], queue, memory_diff)
+          rescue => e
+            @config.logger.error("Sidekiq memory logger callback failed: #{e.message}")
           end
         end
       end
