@@ -49,12 +49,12 @@ jobs:
       id: benchmark_without
       run: |
         echo "Running benchmark WITHOUT memory logger..."
-        output=$(timeout 60 bundle exec bin/sidekiqload 2>&1 || true)
+        output=$(COUNT=100 THREADS=2 timeout 120 bundle exec bin/sidekiqload 2>&1 || true)
         echo "$output"
         
         # Extract performance metrics
-        jobs_per_sec=$(echo "$output" | grep -o '[0-9]* jobs/sec' | grep -o '[0-9]*' || echo "0")
-        ending_rss=$(echo "$output" | grep 'Ending RSS:' | grep -o '[0-9]*' || echo "0")
+        jobs_per_sec=$(echo "$output" | grep -oE '[0-9]+ jobs/sec' | grep -oE '[0-9]+' | head -1 || echo "0")
+        ending_rss=$(echo "$output" | grep 'Ending RSS:' | grep -oE '[0-9]+' | head -1 || echo "0")
         
         echo "without_jobs_per_sec=$jobs_per_sec" >> $GITHUB_OUTPUT
         echo "without_ending_rss=$ending_rss" >> $GITHUB_OUTPUT
@@ -68,12 +68,12 @@ jobs:
       id: benchmark_with
       run: |
         echo "Running benchmark WITH memory logger..."
-        output=$(MEMORY_LOGGER=1 timeout 60 bundle exec bin/sidekiqload 2>&1 || true)
+        output=$(MEMORY_LOGGER=1 COUNT=100 THREADS=2 timeout 120 bundle exec bin/sidekiqload 2>&1 || true)
         echo "$output"
         
         # Extract performance metrics
-        jobs_per_sec=$(echo "$output" | grep -o '[0-9]* jobs/sec' | grep -o '[0-9]*' || echo "0")
-        ending_rss=$(echo "$output" | grep 'Ending RSS:' | grep -o '[0-9]*' || echo "0")
+        jobs_per_sec=$(echo "$output" | grep -oE '[0-9]+ jobs/sec' | grep -oE '[0-9]+' | head -1 || echo "0")
+        ending_rss=$(echo "$output" | grep 'Ending RSS:' | grep -oE '[0-9]+' | head -1 || echo "0")
         
         echo "with_jobs_per_sec=$jobs_per_sec" >> $GITHUB_OUTPUT
         echo "with_ending_rss=$ending_rss" >> $GITHUB_OUTPUT
