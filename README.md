@@ -4,6 +4,8 @@ A Sidekiq server middleware that tracks RSS memory usage for each job and provid
 
 Have you ever seen massive memory increases in your Sidekiq workers and wondered which job exactly was causing the problem? Well, this gem helps you figure that out.
 
+![memory](https://github.com/user-attachments/assets/6084306f-1f3e-4fdb-9c4a-fccc63a2942f)
+
 ## How it works
 
 Memory measurement is handled by the [get_process_mem](https://github.com/zombocom/get_process_mem) gem, which works reliably across all platforms (Windows, macOS, Linux) and functions both inside and outside of containers.
