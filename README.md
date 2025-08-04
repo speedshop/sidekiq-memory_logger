@@ -18,6 +18,50 @@ Job MyJob on queue default used 15.2 MB
 >
 > **Workaround:** To work around this limitation, collect a large enough sample size and use 95th percentile or maximum metrics along with detailed logging to identify which job classes _consistently_ reproduce memory issues. This statistical approach will help you identify problematic jobs despite the measurement noise from concurrent execution.
 
+### Memory Attribution Problem
+
+The following diagram illustrates why memory attribution is challenging with concurrent job execution:
+
+```mermaid
+sequenceDiagram
+    participant Process as Sidekiq Process<br/>(Shared Heap)
+    participant T1 as Thread 1<br/>(JobA)
+    participant T2 as Thread 2<br/>(JobB)
+    participant T3 as Thread 3<br/>(JobC)
+    
+    Note over Process: Initial Memory: 100 MB
+    
+    par Concurrent Execution
+        T1->>Process: Start JobA
+        Note over T1: Measure: 100 MB
+        and
+        T2->>Process: Start JobB
+        Note over T2: Measure: 100 MB
+        and  
+        T3->>Process: Start JobC
+        Note over T3: Measure: 100 MB
+    end
+    
+    Note over Process: All jobs allocate memory simultaneously
+    Note over Process: Memory grows to 150 MB
+    
+    par Jobs Complete
+        T1->>Process: JobA finishes
+        Note over T1: Measure: 150 MB<br/>Reports: 50 MB used ❌
+        Note over T1: (Actually used ~17 MB)
+        and
+        T2->>Process: JobB finishes  
+        Note over T2: Measure: 150 MB<br/>Reports: 50 MB used ❌
+        Note over T2: (Actually used ~17 MB)
+        and
+        T3->>Process: JobC finishes
+        Note over T3: Measure: 150 MB<br/>Reports: 50 MB used ❌  
+        Note over T3: (Actually used ~16 MB)
+    end
+    
+    Note over Process: Problem: Each job claims<br/>credit for all memory growth<br/>Total reported: 150 MB<br/>Actual growth: 50 MB
+```
+
 ## Installation
 
 Add this line to your application's Gemfile:
