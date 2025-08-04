@@ -6,11 +6,11 @@ Have you ever seen massive memory increases in your Sidekiq workers? Well, this 
 
 ## How it works
 
-Memory measurement is handled by the [get_process_mem](https://github.com/zombocom/get_process_mem) gem, which works across all platforms (Windows, macOS, Linux) and both inside and outside of containers.
+Memory measurement is handled by the [get_process_mem](https://github.com/zombocom/get_process_mem) gem, which works across all platforms (Windows, macOS, Linux) and both inside and outside of containers. Object allocation tracking uses Ruby's built-in `GC.stat[:total_allocated_objects]`.
 
 By default, this gem just logs at `info` level for every job:
 ```
-[MemoryLogger] job=MyJob queue=default memory_mb=15.2
+[MemoryLogger] job=MyJob queue=default memory_mb=15.2 objects=12345
 ```
 
 You can also parse this log and create a metric (e.g. with Sumo or Datadog) or change the callback we use (see Configuration below) to create metrics.

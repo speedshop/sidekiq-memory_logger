@@ -11,15 +11,15 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
   def test_middleware_calls_callback_when_configured
     callback_calls = []
     config = Sidekiq::MemoryLogger::Configuration.new
-    config.callback = ->(job_class, queue, memory_diff, args) do
-      callback_calls << [job_class, queue, memory_diff, args]
+    config.callback = ->(job_class, queue, memory_diff, objects_diff, args) do
+      callback_calls << [job_class, queue, memory_diff, objects_diff, args]
     end
 
     middleware = Sidekiq::MemoryLogger::Middleware.new(config)
     middleware.call(nil, @job, @queue) { sleep 0.01 }
 
     assert_equal 1, callback_calls.length
-    job_class, queue, memory_diff, args = callback_calls.first
+    job_class, queue, memory_diff, _objects_diff, args = callback_calls.first
     assert_equal "TestJob", job_class
     assert_equal "test_queue", queue
     assert_kind_of Float, memory_diff
@@ -39,13 +39,14 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
 
     log_content = log_output.string
     assert_includes log_content, "[MemoryLogger] job=TestJob queue=test_queue memory_mb="
+    assert_includes log_content, "objects="
   end
 
   def test_middleware_handles_exceptions
     callback_calls = []
     config = Sidekiq::MemoryLogger::Configuration.new
-    config.callback = ->(job_class, queue, memory_diff, args) do
-      callback_calls << [job_class, queue, memory_diff, args]
+    config.callback = ->(job_class, queue, memory_diff, objects_diff, args) do
+      callback_calls << [job_class, queue, memory_diff, objects_diff, args]
     end
 
     middleware = Sidekiq::MemoryLogger::Middleware.new(config)
@@ -62,7 +63,7 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     test_logger = Logger.new(log_output)
     config = Sidekiq::MemoryLogger::Configuration.new
     config.logger = test_logger
-    config.callback = ->(job_class, queue, memory_diff, args) do
+    config.callback = ->(job_class, queue, memory_diff, objects_diff, args) do
       raise StandardError, "callback error"
     end
 
@@ -83,7 +84,7 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     }
 
     config = Sidekiq::MemoryLogger::Configuration.new
-    config.callback = ->(job_class, queue, memory_diff, args) do
+    config.callback = ->(job_class, queue, memory_diff, objects_diff, args) do
       callback_args = args
     end
 
@@ -102,7 +103,7 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     }
 
     config = Sidekiq::MemoryLogger::Configuration.new
-    config.callback = ->(job_class, queue, memory_diff, args) do
+    config.callback = ->(job_class, queue, memory_diff, objects_diff, args) do
       callback_args = args
     end
 
@@ -121,7 +122,7 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     }
 
     config = Sidekiq::MemoryLogger::Configuration.new
-    config.callback = ->(job_class, queue, memory_diff, args) do
+    config.callback = ->(job_class, queue, memory_diff, objects_diff, args) do
       callback_args = args
     end
 
@@ -136,8 +137,8 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     callback_calls = []
     config = Sidekiq::MemoryLogger::Configuration.new
     config.queues = ["important", "critical"]
-    config.callback = ->(job_class, queue, memory_diff, args) do
-      callback_calls << [job_class, queue, memory_diff, args]
+    config.callback = ->(job_class, queue, memory_diff, objects_diff, args) do
+      callback_calls << [job_class, queue, memory_diff, objects_diff, args]
     end
 
     middleware = Sidekiq::MemoryLogger::Middleware.new(config)
@@ -150,15 +151,15 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     callback_calls = []
     config = Sidekiq::MemoryLogger::Configuration.new
     config.queues = ["test_queue", "critical"]
-    config.callback = ->(job_class, queue, memory_diff, args) do
-      callback_calls << [job_class, queue, memory_diff, args]
+    config.callback = ->(job_class, queue, memory_diff, objects_diff, args) do
+      callback_calls << [job_class, queue, memory_diff, objects_diff, args]
     end
 
     middleware = Sidekiq::MemoryLogger::Middleware.new(config)
     middleware.call(nil, @job, "test_queue") { sleep 0.01 }
 
     assert_equal 1, callback_calls.length
-    job_class, queue, _memory_diff, _args = callback_calls.first
+    job_class, queue, _memory_diff, _objects_diff, _args = callback_calls.first
     assert_equal "TestJob", job_class
     assert_equal "test_queue", queue
   end
@@ -167,15 +168,15 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     callback_calls = []
     config = Sidekiq::MemoryLogger::Configuration.new
     config.queues = []
-    config.callback = ->(job_class, queue, memory_diff, args) do
-      callback_calls << [job_class, queue, memory_diff, args]
+    config.callback = ->(job_class, queue, memory_diff, objects_diff, args) do
+      callback_calls << [job_class, queue, memory_diff, objects_diff, args]
     end
 
     middleware = Sidekiq::MemoryLogger::Middleware.new(config)
     middleware.call(nil, @job, "any_queue") { sleep 0.01 }
 
     assert_equal 1, callback_calls.length
-    job_class, queue, _memory_diff, _args = callback_calls.first
+    job_class, queue, _memory_diff, _objects_diff, _args = callback_calls.first
     assert_equal "TestJob", job_class
     assert_equal "any_queue", queue
   end
