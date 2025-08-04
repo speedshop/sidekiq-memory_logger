@@ -75,8 +75,8 @@ module Sidekiq
       private
 
       def should_skip_queue?(queue)
-        return false if @config.queues.empty?
-        !@config.queues.include?(queue)
+        return false if @memory_logger_config.queues.empty?
+        !@memory_logger_config.queues.include?(queue)
       end
     end
   end
