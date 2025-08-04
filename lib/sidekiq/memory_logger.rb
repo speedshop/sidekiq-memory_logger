@@ -30,8 +30,8 @@ module Sidekiq
       end
 
       def default_callback
-        ->(job_class, queue, memory_diff_mb, args) do
-          @logger.info("[MemoryLogger] job=#{job_class} queue=#{queue} memory_mb=#{memory_diff_mb}")
+        ->(job_class, queue, memory_diff_mb, objects_diff, args) do
+          @logger.info("[MemoryLogger] job=#{job_class} queue=#{queue} memory_mb=#{memory_diff_mb} objects=#{objects_diff}")
         end
       end
     end
@@ -57,15 +57,18 @@ module Sidekiq
         return yield if should_skip_queue?(queue)
 
         start_mem = GetProcessMem.new.mb
+        start_objects = GC.stat[:total_allocated_objects]
 
         begin
           yield
         ensure
           end_mem = GetProcessMem.new.mb
+          end_objects = GC.stat[:total_allocated_objects]
           memory_diff = end_mem - start_mem
+          objects_diff = end_objects - start_objects
 
           begin
-            @memory_logger_config.callback.call(job["class"], queue, memory_diff, job["args"])
+            @memory_logger_config.callback.call(job["class"], queue, memory_diff, objects_diff, job["args"])
           rescue => e
             @memory_logger_config.logger.error("Sidekiq memory logger callback failed: #{e.message}")
           end
