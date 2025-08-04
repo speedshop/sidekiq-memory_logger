@@ -111,25 +111,18 @@ jobs:
         # Performance comparison
         without_jps=${{ steps.benchmark_without.outputs.without_jobs_per_sec }}
         with_jps=${{ steps.benchmark_with.outputs.with_jobs_per_sec }}
-        without_rss=${{ steps.benchmark_without.outputs.without_ending_rss }}
-        with_rss=${{ steps.benchmark_with.outputs.with_ending_rss }}
         
         echo "### Performance Metrics" >> $GITHUB_STEP_SUMMARY
         echo "| Metric | Without Logger | With Logger | Difference |" >> $GITHUB_STEP_SUMMARY
         echo "|--------|----------------|-------------|------------|" >> $GITHUB_STEP_SUMMARY
         echo "| Jobs/sec | $without_jps | $with_jps | $(($with_jps - $without_jps)) |" >> $GITHUB_STEP_SUMMARY
-        echo "| Ending RSS (KB) | $without_rss | $with_rss | $(($with_rss - $without_rss)) |" >> $GITHUB_STEP_SUMMARY
         
-        # Calculate percentage differences if values are non-zero
+        # Calculate milliseconds per job
         if [ "$without_jps" -gt 0 ] && [ "$with_jps" -gt 0 ]; then
-          perf_impact=$(echo "scale=2; (($without_jps - $with_jps) * 100.0) / $without_jps" | bc -l 2>/dev/null || echo "N/A")
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Performance Impact:** ${perf_impact}% slower with memory logger" >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        if [ "$without_rss" -gt 0 ] && [ "$with_rss" -gt 0 ]; then
-          memory_impact=$(echo "scale=2; (($with_rss - $without_rss) * 100.0) / $without_rss" | bc -l 2>/dev/null || echo "N/A")
-          echo "**Memory Impact:** ${memory_impact}% more memory with memory logger" >> $GITHUB_STEP_SUMMARY
+          without_ms_per_job=$(echo "scale=3; 1000.0 / $without_jps" | bc -l)
+          with_ms_per_job=$(echo "scale=3; 1000.0 / $with_jps" | bc -l)
+          ms_per_job_diff=$(echo "scale=3; $with_ms_per_job - $without_ms_per_job" | bc -l)
+          echo "| Milliseconds per job | $without_ms_per_job | $with_ms_per_job | $ms_per_job_diff |" >> $GITHUB_STEP_SUMMARY
         fi
 
     - name: Output results to console
