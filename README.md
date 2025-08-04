@@ -23,7 +23,7 @@ You can also parse this log and create a metric (e.g. with Sumo or Datadog) or c
 ## Installation
 
 ```ruby
-gem 'sidekiq-memory-logger'
+gem 'sidekiq-memory_logger'
 ```
 
 ## Usage
@@ -45,42 +45,42 @@ You're now ready to go.
 
 ### Configuration
 
-It will just work out of the box, but you can change some of your behavior if you like. 
+It will just work out of the box, but you can change some of your behavior if you like.
 
 ```ruby
 # config/initializers/sidekiq_memory_logger.rb or similar
 Sidekiq::MemoryLogger.configure do |config|
   # Change the logger (default uses Rails.logger if available, otherwise stdout)
   config.logger = MyCustomLogger.new
-  
+
   # Specify which queues to monitor (empty array monitors all queues)
   config.queues = ["critical", "mailers"]  # Only monitor these queues
   # config.queues = []  # Monitor all queues (default)
-  
+
   # Replace the default logging callback with custom behavior
   # The callback now receives job arguments as the 5th parameter
   config.callback = ->(job_class, queue, memory_diff_mb, objects_diff, args) do
     # Example: Extract company_id from job arguments
     # Assuming your job is called like: ProcessCompanyDataJob.perform_async(company_id, other_params)
     company_id = args&.first
-    
+
     # StatsD example with company_id
     StatsD.histogram('sidekiq.memory_usage', memory_diff_mb, tags: {
-      job_class: job_class, 
+      job_class: job_class,
       queue: queue,
       company_id: company_id
     })
-    
+
     # Log with company context
     Rails.logger.info "Job #{job_class} for company #{company_id} on queue #{queue} used #{memory_diff_mb} MB"
-    
+
     # Dogstatsd example
     # $dogstatsd.histogram('sidekiq.memory_usage', memory_diff_mb, tags: [
     #   "job_class:#{job_class}",
     #   "queue:#{queue}",
     #   "company_id:#{company_id}"
     # ])
-    
+
     # New Relic example
     # NewRelic::Agent.record_metric("Custom/Sidekiq/MemoryUsage/#{queue}/#{job_class}", memory_diff_mb)
     # NewRelic::Agent.add_custom_attributes({
@@ -88,7 +88,7 @@ Sidekiq::MemoryLogger.configure do |config|
     #   'sidekiq.queue' => queue,
     #   'sidekiq.company_id' => company_id
     # })
-    
+
     # Datadog tracing example - add attributes to current span
     # span = Datadog::Tracing.active_span
     # if span
@@ -98,20 +98,20 @@ Sidekiq::MemoryLogger.configure do |config|
     #   span.set_tag('sidekiq.company_id', company_id)
     # end
   end
-  
+
   # The default callback logs memory usage like this:
   # config.callback = ->(job_class, queue, memory_diff_mb, objects_diff, args) do
   #   config.logger.info("[MemoryLogger] job=#{job_class} queue=#{queue} memory_mb=#{memory_diff_mb}")
   # end
-  
+
   # If you want custom metrics AND logging, include both in your callback:
   config.callback = ->(job_class, queue, memory_diff_mb, objects_diff, args) do
     # Your custom metrics collection
     StatsD.histogram('sidekiq.memory_usage', memory_diff_mb, tags: {
-      job_class: job_class, 
+      job_class: job_class,
       queue: queue
     })
-    
+
     # Include logging if you still want it
     Rails.logger.info "Job #{job_class} on queue #{queue} used #{memory_diff_mb} MB"
   end
