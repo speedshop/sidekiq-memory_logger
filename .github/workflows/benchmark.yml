@@ -1,0 +1,161 @@
+name: Benchmark
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7.0
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    strategy:
+      matrix:
+        ruby-version: ['3.4']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Ruby ${{ matrix.ruby-version }}
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true
+
+    - name: Cache Redis CLI
+      uses: actions/cache@v4
+      id: cache-redis-tools
+      with:
+        path: /usr/bin/redis-cli
+        key: redis-tools-${{ runner.os }}
+
+    - name: Install Redis CLI
+      if: steps.cache-redis-tools.outputs.cache-hit != 'true'
+      run: sudo apt-get update && sudo apt-get install -y redis-tools
+
+    - name: Wait for Redis
+      run: |
+        until redis-cli ping; do
+          echo "Waiting for Redis..."
+          sleep 1
+        done
+
+    - name: Run benchmark without memory logger
+      id: benchmark_without
+      run: |
+        echo "Running benchmark WITHOUT memory logger..."
+        output=$(ITER=50 timeout 120 bundle exec bin/sidekiqload 2>&1 || true)
+        echo "$output"
+        
+        # Extract performance metrics
+        jobs_per_sec=$(echo "$output" | grep -oE '[0-9]+ jobs/sec' | grep -oE '[0-9]+' | head -1 || echo "0")
+        ending_rss=$(echo "$output" | grep 'Ending RSS:' | grep -oE '[0-9]+' | head -1 || echo "0")
+        
+        echo "without_jobs_per_sec=$jobs_per_sec" >> $GITHUB_OUTPUT
+        echo "without_ending_rss=$ending_rss" >> $GITHUB_OUTPUT
+        
+        # Save full output for comparison
+        echo "WITHOUT_OUTPUT<<EOF" >> $GITHUB_ENV
+        echo "$output" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+    - name: Run benchmark with memory logger
+      id: benchmark_with
+      run: |
+        echo "Running benchmark WITH memory logger..."
+        output=$(MEMORY_LOGGER=1 ITER=50 timeout 120 bundle exec bin/sidekiqload 2>&1 || true)
+        echo "$output"
+        
+        # Extract performance metrics
+        jobs_per_sec=$(echo "$output" | grep -oE '[0-9]+ jobs/sec' | grep -oE '[0-9]+' | head -1 || echo "0")
+        ending_rss=$(echo "$output" | grep 'Ending RSS:' | grep -oE '[0-9]+' | head -1 || echo "0")
+        
+        echo "with_jobs_per_sec=$jobs_per_sec" >> $GITHUB_OUTPUT
+        echo "with_ending_rss=$ending_rss" >> $GITHUB_OUTPUT
+        
+        # Save full output for comparison
+        echo "WITH_OUTPUT<<EOF" >> $GITHUB_ENV
+        echo "$output" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+    - name: Compare results
+      run: |
+        echo "## Benchmark Results Comparison" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### Without Memory Logger" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "$WITHOUT_OUTPUT" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        echo "### With Memory Logger" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "$WITH_OUTPUT" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        # Performance comparison
+        without_jps=${{ steps.benchmark_without.outputs.without_jobs_per_sec }}
+        with_jps=${{ steps.benchmark_with.outputs.with_jobs_per_sec }}
+        without_rss=${{ steps.benchmark_without.outputs.without_ending_rss }}
+        with_rss=${{ steps.benchmark_with.outputs.with_ending_rss }}
+        
+        echo "### Performance Metrics" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Without Logger | With Logger | Difference |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|----------------|-------------|------------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Jobs/sec | $without_jps | $with_jps | $(($with_jps - $without_jps)) |" >> $GITHUB_STEP_SUMMARY
+        echo "| Ending RSS (KB) | $without_rss | $with_rss | $(($with_rss - $without_rss)) |" >> $GITHUB_STEP_SUMMARY
+        
+        # Calculate percentage differences if values are non-zero
+        if [ "$without_jps" -gt 0 ] && [ "$with_jps" -gt 0 ]; then
+          perf_impact=$(echo "scale=2; (($without_jps - $with_jps) * 100.0) / $without_jps" | bc -l 2>/dev/null || echo "N/A")
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Performance Impact:** ${perf_impact}% slower with memory logger" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "$without_rss" -gt 0 ] && [ "$with_rss" -gt 0 ]; then
+          memory_impact=$(echo "scale=2; (($with_rss - $without_rss) * 100.0) / $without_rss" | bc -l 2>/dev/null || echo "N/A")
+          echo "**Memory Impact:** ${memory_impact}% more memory with memory logger" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Output results to console
+      run: |
+        echo "=== BENCHMARK RESULTS ==="
+        echo "Without Memory Logger:"
+        echo "  Jobs/sec: ${{ steps.benchmark_without.outputs.without_jobs_per_sec }}"
+        echo "  Ending RSS: ${{ steps.benchmark_without.outputs.without_ending_rss }} KB"
+        echo ""
+        echo "With Memory Logger:"
+        echo "  Jobs/sec: ${{ steps.benchmark_with.outputs.with_jobs_per_sec }}"
+        echo "  Ending RSS: ${{ steps.benchmark_with.outputs.with_ending_rss }} KB"
+        echo ""
+        echo "Differences:"
+        echo "  Jobs/sec difference: $((${{ steps.benchmark_with.outputs.with_jobs_per_sec }} - ${{ steps.benchmark_without.outputs.without_jobs_per_sec }}))"
+        echo "  RSS difference: $((${{ steps.benchmark_with.outputs.with_ending_rss }} - ${{ steps.benchmark_without.outputs.without_ending_rss }})) KB"
+        echo ""
+        
+        # Calculate absolute latency added per job
+        without_jps=${{ steps.benchmark_without.outputs.without_jobs_per_sec }}
+        with_jps=${{ steps.benchmark_with.outputs.with_jobs_per_sec }}
+        
+        if [ "$without_jps" -gt 0 ] && [ "$with_jps" -gt 0 ]; then
+          # Convert jobs/sec to milliseconds per job, then calculate difference
+          without_ms_per_job=$(echo "scale=6; 1000.0 / $without_jps" | bc -l)
+          with_ms_per_job=$(echo "scale=6; 1000.0 / $with_jps" | bc -l)
+          latency_added=$(echo "scale=3; $with_ms_per_job - $without_ms_per_job" | bc -l)
+          echo "Memory logger adds $latency_added milliseconds per job"
+        fi

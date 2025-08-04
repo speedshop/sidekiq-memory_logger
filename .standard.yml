@@ -1,13 +1,5 @@
-# Standard Ruby configuration for sidekiq-memory_logger
-# Extends the base Standard rules with project-specific customizations
-
-# Extend with our custom RuboCop configuration
+ignore:
+  - 'bin/**/*'
 extend_config:
   - .custom_rubocop.yml
-
-# Ruby version (optional, defaults to current Ruby version)
 ruby_version: 2.7
-
-# You can also ignore specific files if needed
-# ignore:
-#   - 'vendor/**/*'
