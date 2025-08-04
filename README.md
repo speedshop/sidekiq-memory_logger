@@ -1,20 +1,22 @@
 # Sidekiq Memory Logger
 
-A Sidekiq server middleware that tracks RSS memory usage for each job and provides configurable logging and reporting options.
+A Sidekiq server middleware that tracks RSS memory usage for each job and provides configurable logging and reporting options. This helps you identify memory-hungry jobs and track memory usage patterns across your Sidekiq workers.
+
+Have you ever seen massive memory increases in your Sidekiq workers and wondered which job exactly was causing the problem? Well, this gem helps you figure that out.
 
 ## How it works
 
-This middleware measures the process RSS (Resident Set Size) memory before and after each Sidekiq job runs, then logs or reports the difference. This helps you identify memory-hungry jobs and track memory usage patterns across your Sidekiq workers.
-
 Memory measurement is handled by the [get_process_mem](https://github.com/zombocom/get_process_mem) gem, which works reliably across all platforms (Windows, macOS, Linux) and functions both inside and outside of containers.
 
-Example log output:
+By default, this gem just logs at `info` level for every job:
 ```
 Job MyJob on queue default used 15.2 MB
 ```
 
+We recommend using logs as the basis for your investigation, but you can also parse this log and create a metric (e.g. with Sumo or Datadog) or change the callback we use (see Configuration below) to create metrics.
+
 > [!WARNING]
-> This gem has limitations when multiple jobs are running concurrently in the same process (which is how Sidekiq works by default unless concurrency is set to 1). Each job runs on its own thread, but all threads share the same process heap. Since memory measurement is performed at the process level, concurrent job execution can lead to inaccurate memory attribution - the measured memory usage may include memory from other jobs running simultaneously.
+> Each job runs on its own thread, but all threads share the same process heap. Since memory measurement is performed at the process level, concurrent job execution can lead to inaccurate memory attribution, since the measured memory usage will include memory increases from other jobs running simultaneously. For example, two jobs running at the same time will report the same memory increase, although only one of those jobs may have allocated any memory at all.
 >
 > **Workaround:** To work around this limitation, collect a large enough sample size and use 95th percentile or maximum metrics along with detailed logging to identify which job classes _consistently_ reproduce memory issues. This statistical approach will help you identify problematic jobs despite the measurement noise from concurrent execution.
 
@@ -30,7 +32,7 @@ gem 'sidekiq-memory-logger'
 
 ### Basic Setup
 
-Add the middleware to your Sidekiq server configuration:
+You must add the middleware to your Sidekiq server configuration:
 
 ```ruby
 Sidekiq.configure_server do |config|
@@ -40,11 +42,11 @@ Sidekiq.configure_server do |config|
 end
 ```
 
-By default, this will log memory usage for each job using the format: "Job MyJob on queue default used 15.2 MB"
+You're now ready to go.
 
 ### Configuration
 
-Configure custom logging behavior:
+It's possible to change the logger we use, or just do your own thing with the memory information we've captured.
 
 ```ruby
 Sidekiq::MemoryLogger.configure do |config|
@@ -120,20 +122,4 @@ end
 
 The memory logger middleware introduces some performance overhead due to memory measurement and callback execution. We continuously benchmark this overhead using the official `sidekiqload` tool.
 
-Based on our latest benchmarks ([view workflow](https://github.com/speedshop/sidekiq-memory_logger/actions/workflows/benchmark.yml)):
-
-```
-=== BENCHMARK RESULTS ===
-Without Memory Logger:
-  Jobs/sec: 6837
-  Ending RSS: 1 KB
-With Memory Logger:
-  Jobs/sec: 3265
-  Ending RSS: 1 KB
-Differences:
-  Jobs/sec difference: -3572
-  RSS difference: 0 KB
-Memory logger adds .160016 milliseconds per job
-```
-
-The middleware reduces throughput by approximately 52% while adding ~0.16ms of latency per job. The memory footprint increase is negligible. Consider this overhead when deciding whether to enable the middleware in high-throughput production environments.
+According to our benchmarks running in Github Actions ([view workflow](https://github.com/speedshop/sidekiq-memory_logger/actions/workflows/benchmark.yml)), the middleware **adds ~0.16ms of latency per job**. The memory footprint increase is negligible. Consider this overhead when deciding whether to enable the middleware in high-throughput production environments. Use the `queues` config setting to limit this middleware to only the queues you're trying to debug.
