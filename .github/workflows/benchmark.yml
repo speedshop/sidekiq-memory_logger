@@ -35,6 +35,9 @@ jobs:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true
 
+    - name: Install Redis CLI
+      run: sudo apt-get update && sudo apt-get install -y redis-tools
+
     - name: Wait for Redis
       run: |
         until redis-cli ping; do
