@@ -1,21 +1,19 @@
 # Sidekiq Memory Logger
 
-A Sidekiq server middleware that tracks RSS memory usage for each job and provides configurable logging and reporting options. This helps you identify memory-hungry jobs and track memory usage patterns across your Sidekiq workers.
-
-Have you ever seen massive memory increases in your Sidekiq workers and wondered which job exactly was causing the problem? Well, this gem helps you figure that out.
+Have you ever seen massive memory increases in your Sidekiq workers? Well, this gem helps you figure out which job is causing it.
 
 ![memory](https://github.com/user-attachments/assets/6084306f-1f3e-4fdb-9c4a-fccc63a2942f)
 
 ## How it works
 
-Memory measurement is handled by the [get_process_mem](https://github.com/zombocom/get_process_mem) gem, which works reliably across all platforms (Windows, macOS, Linux) and functions both inside and outside of containers.
+Memory measurement is handled by the [get_process_mem](https://github.com/zombocom/get_process_mem) gem, which works across all platforms (Windows, macOS, Linux) and both inside and outside of containers.
 
 By default, this gem just logs at `info` level for every job:
 ```
 [MemoryLogger] job=MyJob queue=default memory_mb=15.2
 ```
 
-We recommend using logs as the basis for your investigation, but you can also parse this log and create a metric (e.g. with Sumo or Datadog) or change the callback we use (see Configuration below) to create metrics.
+You can also parse this log and create a metric (e.g. with Sumo or Datadog) or change the callback we use (see Configuration below) to create metrics.
 
 > [!WARNING]
 > Each job runs on its own thread, but all threads share the same process heap. Since memory measurement is performed at the process level, concurrent job execution can lead to inaccurate memory attribution, since the measured memory usage will include memory increases from other jobs running simultaneously. For example, two jobs running at the same time will report the same memory increase, although only one of those jobs may have allocated any memory at all.
@@ -23,8 +21,6 @@ We recommend using logs as the basis for your investigation, but you can also pa
 > **Workaround:** To work around this limitation, collect a large enough sample size and use 95th percentile or maximum metrics along with detailed logging to identify which job classes _consistently_ reproduce memory issues. This statistical approach will help you identify problematic jobs despite the measurement noise from concurrent execution.
 
 ## Installation
-
-Add this line to your application's Gemfile:
 
 ```ruby
 gem 'sidekiq-memory-logger'
@@ -37,6 +33,7 @@ gem 'sidekiq-memory-logger'
 You must add the middleware to your Sidekiq server configuration:
 
 ```ruby
+# config/initializers/sidekiq.rb or similar
 Sidekiq.configure_server do |config|
   config.server_middleware do |chain|
     chain.add Sidekiq::MemoryLogger::Middleware
@@ -48,9 +45,10 @@ You're now ready to go.
 
 ### Configuration
 
-It's possible to change the logger we use, or just do your own thing with the memory information we've captured.
+It will just work out of the box, but you can change some of your behavior if you like. 
 
 ```ruby
+# config/initializers/sidekiq_memory_logger.rb or similar
 Sidekiq::MemoryLogger.configure do |config|
   # Change the logger (default uses Rails.logger if available, otherwise stdout)
   config.logger = MyCustomLogger.new
