@@ -15,8 +15,6 @@ class TestSidekiqMemoryLoggerConfigureMethod < Minitest::Test
 
     assert_equal "test_logger", Sidekiq::MemoryLogger.configuration.logger
     assert_equal "test_callback", Sidekiq::MemoryLogger.configuration.callback
-  ensure
-    Sidekiq::MemoryLogger.instance_variable_set(:@configuration, nil)
   end
 
   def test_configuration_object
@@ -37,7 +35,5 @@ class TestSidekiqMemoryLoggerConfigureMethod < Minitest::Test
     callback = ->(job, queue, memory) { "test" }
     Sidekiq::MemoryLogger.configuration.callback = callback
     assert_equal callback, Sidekiq::MemoryLogger.configuration.callback
-  ensure
-    Sidekiq::MemoryLogger.instance_variable_set(:@configuration, nil)
   end
 end
