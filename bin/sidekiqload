@@ -104,7 +104,7 @@ class Loader
         $memory_stats = {jobs_tracked: 0}
         
         Sidekiq::MemoryLogger.configure do |memory_config|
-          memory_config.callback = ->(job_class, queue, memory_diff, args) do
+          memory_config.callback = ->(job_class, queue, memory_diff, objects_diff, args) do
             $memory_stats[:jobs_tracked] += 1
           end
         end

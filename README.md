@@ -58,8 +58,8 @@ Sidekiq::MemoryLogger.configure do |config|
   # config.queues = []  # Monitor all queues (default)
   
   # Replace the default logging callback with custom behavior
-  # The callback now receives job arguments as the 4th parameter
-  config.callback = ->(job_class, queue, memory_diff_mb, args) do
+  # The callback now receives job arguments as the 5th parameter
+  config.callback = ->(job_class, queue, memory_diff_mb, objects_diff, args) do
     # Example: Extract company_id from job arguments
     # Assuming your job is called like: ProcessCompanyDataJob.perform_async(company_id, other_params)
     company_id = args&.first
@@ -100,12 +100,12 @@ Sidekiq::MemoryLogger.configure do |config|
   end
   
   # The default callback logs memory usage like this:
-  # config.callback = ->(job_class, queue, memory_diff_mb, args) do
+  # config.callback = ->(job_class, queue, memory_diff_mb, objects_diff, args) do
   #   config.logger.info("[MemoryLogger] job=#{job_class} queue=#{queue} memory_mb=#{memory_diff_mb}")
   # end
   
   # If you want custom metrics AND logging, include both in your callback:
-  config.callback = ->(job_class, queue, memory_diff_mb, args) do
+  config.callback = ->(job_class, queue, memory_diff_mb, objects_diff, args) do
     # Your custom metrics collection
     StatsD.histogram('sidekiq.memory_usage', memory_diff_mb, tags: {
       job_class: job_class, 
