@@ -52,24 +52,35 @@ Sidekiq::MemoryLogger.configure do |config|
   config.logger = MyCustomLogger.new
   
   # Replace the default logging callback with custom behavior
-  config.callback = ->(job_class, queue, memory_diff_mb) do
-    # StatsD example
+  # The callback now receives job arguments as the 4th parameter
+  config.callback = ->(job_class, queue, memory_diff_mb, args) do
+    # Example: Extract company_id from job arguments
+    # Assuming your job is called like: ProcessCompanyDataJob.perform_async(company_id, other_params)
+    company_id = args&.first
+    
+    # StatsD example with company_id
     StatsD.histogram('sidekiq.memory_usage', memory_diff_mb, tags: {
       job_class: job_class, 
-      queue: queue
+      queue: queue,
+      company_id: company_id
     })
+    
+    # Log with company context
+    Rails.logger.info "Job #{job_class} for company #{company_id} on queue #{queue} used #{memory_diff_mb} MB"
     
     # Dogstatsd example
     # $dogstatsd.histogram('sidekiq.memory_usage', memory_diff_mb, tags: [
     #   "job_class:#{job_class}",
-    #   "queue:#{queue}"
+    #   "queue:#{queue}",
+    #   "company_id:#{company_id}"
     # ])
     
     # New Relic example
     # NewRelic::Agent.record_metric("Custom/Sidekiq/MemoryUsage/#{queue}/#{job_class}", memory_diff_mb)
     # NewRelic::Agent.add_custom_attributes({
     #   'sidekiq.job_class' => job_class,
-    #   'sidekiq.queue' => queue
+    #   'sidekiq.queue' => queue,
+    #   'sidekiq.company_id' => company_id
     # })
     
     # Datadog tracing example - add attributes to current span
@@ -78,16 +89,17 @@ Sidekiq::MemoryLogger.configure do |config|
     #   span.set_tag('sidekiq.memory_usage_mb', memory_diff_mb)
     #   span.set_tag('sidekiq.job_class', job_class)
     #   span.set_tag('sidekiq.queue', queue)
+    #   span.set_tag('sidekiq.company_id', company_id)
     # end
   end
   
   # The default callback logs memory usage like this:
-  # config.callback = ->(job_class, queue, memory_diff_mb) do
+  # config.callback = ->(job_class, queue, memory_diff_mb, args) do
   #   config.logger.info("Job #{job_class} on queue #{queue} used #{memory_diff_mb} MB")
   # end
   
   # If you want custom metrics AND logging, include both in your callback:
-  config.callback = ->(job_class, queue, memory_diff_mb) do
+  config.callback = ->(job_class, queue, memory_diff_mb, args) do
     # Your custom metrics collection
     StatsD.histogram('sidekiq.memory_usage', memory_diff_mb, tags: {
       job_class: job_class, 

@@ -4,7 +4,7 @@ require "test_helper"
 
 class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
   def setup
-    @job = {"class" => "TestJob"}
+    @job = {"class" => "TestJob", "args" => [123, "test_arg"]}
     @queue = "test_queue"
     # Reset configuration first
     Sidekiq::MemoryLogger.configuration.callback = nil
@@ -17,8 +17,8 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     callback_calls = []
 
     Sidekiq::MemoryLogger.configure do |config|
-      config.callback = ->(job_class, queue, memory_diff) do
-        callback_calls << [job_class, queue, memory_diff]
+      config.callback = ->(job_class, queue, memory_diff, args) do
+        callback_calls << [job_class, queue, memory_diff, args]
       end
     end
 
@@ -27,10 +27,11 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     middleware.call(nil, @job, @queue) { sleep 0.01 }
 
     assert_equal 1, callback_calls.length
-    job_class, queue, memory_diff = callback_calls.first
+    job_class, queue, memory_diff, args = callback_calls.first
     assert_equal "TestJob", job_class
     assert_equal "test_queue", queue
     assert_kind_of Float, memory_diff
+    assert_equal [123, "test_arg"], args
   end
 
   def test_middleware_logs_with_default_callback
@@ -56,8 +57,8 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     callback_calls = []
 
     Sidekiq::MemoryLogger.configure do |config|
-      config.callback = ->(job_class, queue, memory_diff) do
-        callback_calls << [job_class, queue, memory_diff]
+      config.callback = ->(job_class, queue, memory_diff, args) do
+        callback_calls << [job_class, queue, memory_diff, args]
       end
     end
 
@@ -78,7 +79,7 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     # Configure a callback that raises an exception
     Sidekiq::MemoryLogger.configure do |config|
       config.logger = test_logger
-      config.callback = ->(job_class, queue, memory_diff) do
+      config.callback = ->(job_class, queue, memory_diff, args) do
         raise StandardError, "callback error"
       end
     end
@@ -91,5 +92,62 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
 
     log_content = log_output.string
     assert_includes log_content, "Sidekiq memory logger callback failed: callback error"
+  end
+
+  def test_middleware_passes_job_arguments_to_callback
+    callback_args = nil
+    job_with_company_id = {
+      "class" => "ProcessCompanyDataJob",
+      "args" => [42, "Acme Corp", {"priority" => "high"}]
+    }
+
+    config = Sidekiq::MemoryLogger::Configuration.new
+    config.callback = ->(job_class, queue, memory_diff, args) do
+      callback_args = args
+    end
+
+    # Create middleware with custom configuration
+    middleware = Sidekiq::MemoryLogger::Middleware.new(config)
+    middleware.call(nil, job_with_company_id, @queue) { sleep 0.01 }
+
+    assert_equal [42, "Acme Corp", {"priority" => "high"}], callback_args
+  end
+
+  def test_middleware_works_with_empty_job_args
+    callback_args = nil
+    job_without_args = {
+      "class" => "CleanupJob",
+      "args" => []
+    }
+
+    config = Sidekiq::MemoryLogger::Configuration.new
+    config.callback = ->(job_class, queue, memory_diff, args) do
+      callback_args = args
+    end
+
+    # Create middleware with custom configuration
+    middleware = Sidekiq::MemoryLogger::Middleware.new(config)
+    middleware.call(nil, job_without_args, @queue) { sleep 0.01 }
+
+    assert_equal [], callback_args
+  end
+
+  def test_middleware_works_with_nil_job_args
+    callback_args = :not_set
+    job_with_nil_args = {
+      "class" => "SpecialJob"
+      # Note: no "args" key at all
+    }
+
+    config = Sidekiq::MemoryLogger::Configuration.new
+    config.callback = ->(job_class, queue, memory_diff, args) do
+      callback_args = args
+    end
+
+    # Create middleware with custom configuration
+    middleware = Sidekiq::MemoryLogger::Middleware.new(config)
+    middleware.call(nil, job_with_nil_args, @queue) { sleep 0.01 }
+
+    assert_nil callback_args
   end
 end
