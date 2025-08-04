@@ -1,13 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
-
-begin
-  require "rails"
-rescue LoadError
-  puts "Skipping Rails tests - Rails not available"
-  return
-end
+require "rails"
 
 class TestSidekiqMemoryLoggerRails < Minitest::Test
   def test_rails_is_available_and_responds_to_logger
@@ -20,7 +14,7 @@ class TestSidekiqMemoryLoggerRails < Minitest::Test
     # Create a mock Rails with a logger
     original_logger_method = Rails.method(:logger) if Rails.respond_to?(:logger)
     test_logger = Logger.new(StringIO.new)
-    
+
     Rails.define_singleton_method(:logger) { test_logger }
 
     # Create new configuration
