@@ -61,7 +61,7 @@ class LoadWorker
   include Sidekiq::Job
   $count = 0
   $lock = Mutex.new
- 
+
   sidekiq_options retry: 1
   sidekiq_retry_in do |x|
     1
@@ -99,9 +99,21 @@ class Loader
       config.logger.level = Logger::INFO
       config.average_scheduled_poll_interval = 2
       config.reliable! if defined?(Sidekiq::Pro)
-      config.server_middleware do |chain|
-        chain.add Sidekiq::MemoryLogger::Middleware
-      end if ENV["MEMORY_LOGGER"]
+      if ENV["MEMORY_LOGGER"]
+        # Configure memory logger with a quiet callback for CI
+        Sidekiq::MemoryLogger.configure do |memory_config|
+          memory_config.callback = ->(job_class, queue, memory_diff, args) do
+            # Only log occasionally to avoid overwhelming CI output
+            if rand(100) == 0  # Log ~1% of jobs
+              config.logger.info("Sample: Job #{job_class} on queue #{queue} used #{memory_diff} MB")
+            end
+          end
+        end
+        
+        config.server_middleware do |chain|
+          chain.add Sidekiq::MemoryLogger::Middleware
+        end
+      end
     end
 
     @self_read, @self_write = IO.pipe
