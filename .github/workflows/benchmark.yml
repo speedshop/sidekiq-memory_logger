@@ -35,7 +35,15 @@ jobs:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true
 
+    - name: Cache Redis CLI
+      uses: actions/cache@v4
+      id: cache-redis-tools
+      with:
+        path: /usr/bin/redis-cli
+        key: redis-tools-${{ runner.os }}
+
     - name: Install Redis CLI
+      if: steps.cache-redis-tools.outputs.cache-hit != 'true'
       run: sudo apt-get update && sudo apt-get install -y redis-tools
 
     - name: Wait for Redis
@@ -49,7 +57,7 @@ jobs:
       id: benchmark_without
       run: |
         echo "Running benchmark WITHOUT memory logger..."
-        output=$(ITER=10 timeout 120 bundle exec bin/sidekiqload 2>&1 || true)
+        output=$(ITER=50 timeout 120 bundle exec bin/sidekiqload 2>&1 || true)
         echo "$output"
         
         # Extract performance metrics
@@ -68,7 +76,7 @@ jobs:
       id: benchmark_with
       run: |
         echo "Running benchmark WITH memory logger..."
-        output=$(MEMORY_LOGGER=1 ITER=10 timeout 120 bundle exec bin/sidekiqload 2>&1 || true)
+        output=$(MEMORY_LOGGER=1 ITER=50 timeout 120 bundle exec bin/sidekiqload 2>&1 || true)
         echo "$output"
         
         # Extract performance metrics
@@ -138,3 +146,16 @@ jobs:
         echo "Differences:"
         echo "  Jobs/sec difference: $((${{ steps.benchmark_with.outputs.with_jobs_per_sec }} - ${{ steps.benchmark_without.outputs.without_jobs_per_sec }}))"
         echo "  RSS difference: $((${{ steps.benchmark_with.outputs.with_ending_rss }} - ${{ steps.benchmark_without.outputs.without_ending_rss }})) KB"
+        echo ""
+        
+        # Calculate absolute latency added per job
+        without_jps=${{ steps.benchmark_without.outputs.without_jobs_per_sec }}
+        with_jps=${{ steps.benchmark_with.outputs.with_jobs_per_sec }}
+        
+        if [ "$without_jps" -gt 0 ] && [ "$with_jps" -gt 0 ]; then
+          # Convert jobs/sec to milliseconds per job, then calculate difference
+          without_ms_per_job=$(echo "scale=6; 1000.0 / $without_jps" | bc -l)
+          with_ms_per_job=$(echo "scale=6; 1000.0 / $with_jps" | bc -l)
+          latency_added=$(echo "scale=3; $with_ms_per_job - $without_ms_per_job" | bc -l)
+          echo "Memory logger adds $latency_added milliseconds per job"
+        fi
