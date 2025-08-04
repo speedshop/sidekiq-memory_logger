@@ -111,3 +111,25 @@ Sidekiq::MemoryLogger.configure do |config|
   end
 end
 ```
+
+## Performance Overhead
+
+The memory logger middleware introduces some performance overhead due to memory measurement and callback execution. We continuously benchmark this overhead using the official `sidekiqload` tool.
+
+Based on our latest benchmarks ([view workflow](https://github.com/speedshop/sidekiq-memory_logger/actions/workflows/benchmark.yml)):
+
+```
+=== BENCHMARK RESULTS ===
+Without Memory Logger:
+  Jobs/sec: 6837
+  Ending RSS: 1 KB
+With Memory Logger:
+  Jobs/sec: 3265
+  Ending RSS: 1 KB
+Differences:
+  Jobs/sec difference: -3572
+  RSS difference: 0 KB
+Memory logger adds .160016 milliseconds per job
+```
+
+The middleware reduces throughput by approximately 52% while adding ~0.16ms of latency per job. The memory footprint increase is negligible. Consider this overhead when deciding whether to enable the middleware in high-throughput production environments.

@@ -1,4 +1,4 @@
-name: Sidekiq Memory Logger Benchmark
+name: Benchmark
 
 on:
   push:
