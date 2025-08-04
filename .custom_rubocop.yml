@@ -1,0 +1,9 @@
+require:
+  - ./lib/rubocop/cop/sidekiq_memory_logger
+
+SidekiqMemoryLogger/NoConfigureInTests:
+  Enabled: true
+  Include:
+    - 'test/**/*.rb'
+  Exclude:
+    - test/sidekiq/memory_logger/configure_method_test.rb
