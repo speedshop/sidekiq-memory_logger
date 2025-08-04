@@ -101,14 +101,11 @@ class Loader
       config.reliable! if defined?(Sidekiq::Pro)
       if ENV["MEMORY_LOGGER"]
         # Configure memory logger with a tracking callback that doesn't flood output
-        $memory_stats = {jobs_tracked: 0, total_memory: 0.0, max_memory: 0.0, min_memory: Float::INFINITY}
+        $memory_stats = {jobs_tracked: 0}
         
         Sidekiq::MemoryLogger.configure do |memory_config|
           memory_config.callback = ->(job_class, queue, memory_diff, args) do
             $memory_stats[:jobs_tracked] += 1
-            $memory_stats[:total_memory] += memory_diff
-            $memory_stats[:max_memory] = [memory_diff, $memory_stats[:max_memory]].max
-            $memory_stats[:min_memory] = [memory_diff, $memory_stats[:min_memory]].min
           end
         end
         
@@ -190,9 +187,7 @@ class Loader
           
           # Output memory logger statistics if enabled
           if ENV["MEMORY_LOGGER"] && defined?($memory_stats) && $memory_stats[:jobs_tracked] > 0
-            avg_memory = $memory_stats[:total_memory] / $memory_stats[:jobs_tracked]
             Sidekiq.logger.warn("Memory Logger Stats: #{$memory_stats[:jobs_tracked]} jobs tracked")
-            Sidekiq.logger.warn("Memory usage - avg: #{'%.3f' % avg_memory} MB, max: #{'%.3f' % $memory_stats[:max_memory]} MB, min: #{'%.3f' % $memory_stats[:min_memory]} MB")
           end
           
           Sidekiq.logger.warn("Now here's the latency for three jobs")
