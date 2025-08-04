@@ -61,14 +61,10 @@ module Sidekiq
           end_mem = GetProcessMem.new.mb
           memory_diff = end_mem - start_mem
 
-          if @memory_logger_config.callback
-            begin
-              @memory_logger_config.callback.call(job["class"], queue, memory_diff)
-            rescue => e
-              @memory_logger_config.logger.error("Sidekiq memory logger callback failed: #{e.message}")
-            end
-          else
-            @memory_logger_config.logger.info("Job #{job["class"]} on queue #{queue} used #{memory_diff} MB")
+          begin
+            @memory_logger_config.callback.call(job["class"], queue, memory_diff, job["args"])
+          rescue => e
+            @memory_logger_config.logger.error("Sidekiq memory logger callback failed: #{e.message}")
           end
         end
       end
