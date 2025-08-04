@@ -29,7 +29,7 @@ module Sidekiq
       end
 
       def default_callback
-        ->(job_class, queue, memory_diff_mb) do
+        ->(job_class, queue, memory_diff_mb, args) do
           @logger.info("Job #{job_class} on queue #{queue} used #{memory_diff_mb} MB")
         end
       end
@@ -48,8 +48,8 @@ module Sidekiq
     class Middleware
       include Sidekiq::ServerMiddleware
 
-      def initialize
-        @config = MemoryLogger.configuration
+      def initialize(config = nil)
+        @config = config || MemoryLogger.configuration
       end
 
       def call(worker_instance, job, queue)
@@ -62,7 +62,7 @@ module Sidekiq
           memory_diff = end_mem - start_mem
 
           begin
-            @config.callback.call(job["class"], queue, memory_diff)
+            @config.callback.call(job["class"], queue, memory_diff, job["args"])
           rescue => e
             @config.logger.error("Sidekiq memory logger callback failed: #{e.message}")
           end
