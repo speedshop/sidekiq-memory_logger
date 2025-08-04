@@ -49,7 +49,7 @@ module Sidekiq
       include Sidekiq::ServerMiddleware
 
       def initialize(config = nil)
-        @config = config || MemoryLogger.configuration
+        @memory_logger_config = config || MemoryLogger.configuration
       end
 
       def call(worker_instance, job, queue)
@@ -61,10 +61,14 @@ module Sidekiq
           end_mem = GetProcessMem.new.mb
           memory_diff = end_mem - start_mem
 
-          begin
-            @config.callback.call(job["class"], queue, memory_diff, job["args"])
-          rescue => e
-            @config.logger.error("Sidekiq memory logger callback failed: #{e.message}")
+          if @memory_logger_config.callback
+            begin
+              @memory_logger_config.callback.call(job["class"], queue, memory_diff)
+            rescue => e
+              @memory_logger_config.logger.error("Sidekiq memory logger callback failed: #{e.message}")
+            end
+          else
+            @memory_logger_config.logger.info("Job #{job["class"]} on queue #{queue} used #{memory_diff} MB")
           end
         end
       end
