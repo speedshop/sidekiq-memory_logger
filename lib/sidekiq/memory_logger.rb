@@ -31,7 +31,7 @@ module Sidekiq
 
       def default_callback
         ->(job_class, queue, memory_diff_mb, args) do
-          @logger.info("Job #{job_class} on queue #{queue} used #{memory_diff_mb} MB")
+          @logger.info("[MemoryLogger] job=#{job_class} queue=#{queue} memory_mb=#{memory_diff_mb}")
         end
       end
     end
