@@ -1,2 +1,5 @@
 ignore:
   - 'bin/**/*'
+extend_config:
+  - .custom_rubocop.yml
+ruby_version: 2.7
