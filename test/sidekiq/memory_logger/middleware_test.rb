@@ -33,12 +33,14 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     assert_kind_of Float, memory_diff
   end
 
-  def test_middleware_logs_when_no_callback
+  def test_middleware_logs_with_default_callback
     log_output = StringIO.new
     test_logger = Logger.new(log_output)
 
     Sidekiq::MemoryLogger.configure do |config|
       config.logger = test_logger
+      # Reset to default callback (which logs)
+      config.callback = config.send(:default_callback)
     end
 
     # Create new middleware after configuration change

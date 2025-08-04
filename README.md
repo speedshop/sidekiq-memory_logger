@@ -40,7 +40,7 @@ Sidekiq.configure_server do |config|
 end
 ```
 
-By default, this will log memory usage for each job to Rails.logger (if Rails is detected) or stdout.
+By default, this will log memory usage for each job using the format: "Job MyJob on queue default used 15.2 MB"
 
 ### Configuration
 
@@ -48,9 +48,10 @@ Configure custom logging behavior:
 
 ```ruby
 Sidekiq::MemoryLogger.configure do |config|
+  # Change the logger (default uses Rails.logger if available, otherwise stdout)
   config.logger = MyCustomLogger.new
   
-  # OR use a custom callback (this disables logging entirely)
+  # Replace the default logging callback with custom behavior
   config.callback = ->(job_class, queue, memory_diff_mb) do
     # StatsD example
     StatsD.histogram('sidekiq.memory_usage', memory_diff_mb, tags: {
@@ -80,7 +81,12 @@ Sidekiq::MemoryLogger.configure do |config|
     # end
   end
   
-  # If you want to use a callback AND still log, you can write your own log:
+  # The default callback logs memory usage like this:
+  # config.callback = ->(job_class, queue, memory_diff_mb) do
+  #   config.logger.info("Job #{job_class} on queue #{queue} used #{memory_diff_mb} MB")
+  # end
+  
+  # If you want custom metrics AND logging, include both in your callback:
   config.callback = ->(job_class, queue, memory_diff_mb) do
     # Your custom metrics collection
     StatsD.histogram('sidekiq.memory_usage', memory_diff_mb, tags: {
@@ -88,7 +94,7 @@ Sidekiq::MemoryLogger.configure do |config|
       queue: queue
     })
     
-    # Still log the memory usage
+    # Include logging if you still want it
     Rails.logger.info "Job #{job_class} on queue #{queue} used #{memory_diff_mb} MB"
   end
 end
