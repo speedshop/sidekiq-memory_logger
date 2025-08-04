@@ -22,7 +22,7 @@
 # RUBYOPT=-w bundle exec sidekiq
 $TESTING = false
 puts RUBY_DESCRIPTION
-puts(%w[THREADS LATENCY AJ PROFILE MEMORY_LOGGER].map { |x| "#{x}: #{ENV[x] || "nil"}" }.join(", "))
+puts(%w[THREADS LATENCY AJ PROFILE MEMORY_LOGGER ITER].map { |x| "#{x}: #{ENV[x] || "nil"}" }.join(", "))
 
 require "ruby-prof" if ENV["PROFILE"]
 require "bundler/setup"
@@ -85,7 +85,7 @@ end
 
 class Loader
   def initialize
-    @iter = ENV["GC"] ? 10 : 500
+    @iter = Integer(ENV["ITER"] || (ENV["GC"] ? 10 : 500))
     @count = Integer(ENV["COUNT"] || 1_000)
     @latency = Integer(ENV["LATENCY"] || 0)
   end

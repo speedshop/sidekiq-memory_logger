@@ -49,7 +49,7 @@ jobs:
       id: benchmark_without
       run: |
         echo "Running benchmark WITHOUT memory logger..."
-        output=$(COUNT=10000 timeout 120 bundle exec bin/sidekiqload 2>&1 || true)
+        output=$(ITER=10 timeout 120 bundle exec bin/sidekiqload 2>&1 || true)
         echo "$output"
         
         # Extract performance metrics
@@ -68,7 +68,7 @@ jobs:
       id: benchmark_with
       run: |
         echo "Running benchmark WITH memory logger..."
-        output=$(MEMORY_LOGGER=1 COUNT=10000 timeout 120 bundle exec bin/sidekiqload 2>&1 || true)
+        output=$(MEMORY_LOGGER=1 ITER=10 timeout 120 bundle exec bin/sidekiqload 2>&1 || true)
         echo "$output"
         
         # Extract performance metrics
