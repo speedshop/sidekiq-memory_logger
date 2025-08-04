@@ -19,12 +19,13 @@ module Sidekiq
       private
 
       def default_logger
-        if defined?(Rails) && Rails.respond_to?(:logger)
-          Rails.logger
-        else
-          require "logger"
-          ::Logger.new($stdout)
-        end
+        rails_logger = defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
+        rails_logger || fallback_logger
+      end
+
+      def fallback_logger
+        require "logger"
+        ::Logger.new($stdout)
       end
     end
 

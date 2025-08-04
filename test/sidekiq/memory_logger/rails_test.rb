@@ -1,85 +1,76 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "rails"
 
 class TestSidekiqMemoryLoggerRails < Minitest::Test
-  def setup
-    # Reset configuration before each test
-    Sidekiq::MemoryLogger.configuration.logger = nil
-    Sidekiq::MemoryLogger.configuration.callback = nil
+  def test_rails_is_available_and_responds_to_logger
+    # Verify Rails constant exists and has logger method
+    assert defined?(Rails), "Rails should be defined"
+    assert Rails.respond_to?(:logger), "Rails should respond to logger"
   end
 
-  def test_initializer_logic_sets_rails_logger_when_defined
-    # Mock Rails and Rails.logger
-    rails_logger = "mock_rails_logger"
-    rails_class = Class.new do
-      define_singleton_method(:logger) { rails_logger }
+  def test_configuration_uses_rails_logger_when_rails_logger_available
+    # Create a mock Rails with a logger
+    original_logger_method = Rails.method(:logger) if Rails.respond_to?(:logger)
+    test_logger = Logger.new(StringIO.new)
+
+    Rails.define_singleton_method(:logger) { test_logger }
+
+    # Create new configuration
+    config = Sidekiq::MemoryLogger::Configuration.new
+
+    # Should use our test Rails.logger
+    assert_equal test_logger, config.logger
+  ensure
+    # Restore original logger method
+    if original_logger_method
+      Rails.define_singleton_method(:logger, &original_logger_method)
     end
-
-    # Temporarily define Rails constant
-    Object.const_set(:Rails, rails_class)
-
-    # Simulate the railtie initializer logic
-    Sidekiq::MemoryLogger.configuration.logger = Rails.logger if defined?(Rails.logger)
-
-    # Verify the logger was set
-    assert_equal rails_logger, Sidekiq::MemoryLogger.configuration.logger
-  ensure
-    # Clean up the Rails constant
-    Object.send(:remove_const, :Rails) if defined?(Rails)
   end
 
-  def test_initializer_logic_does_not_set_logger_when_rails_logger_undefined
-    # Mock Rails without logger method
-    rails_class = Class.new
-    Object.const_set(:Rails, rails_class)
+  def test_configuration_falls_back_when_rails_logger_nil
+    # Ensure Rails.logger returns nil (default state)
+    Rails.define_singleton_method(:logger) { nil }
 
-    # Simulate the railtie initializer logic
-    Sidekiq::MemoryLogger.configuration.logger = Rails.logger if defined?(Rails.logger)
+    # Create new configuration
+    config = Sidekiq::MemoryLogger::Configuration.new
 
-    # Verify the logger was not set
-    assert_nil Sidekiq::MemoryLogger.configuration.logger
-  ensure
-    # Clean up the Rails constant
-    Object.send(:remove_const, :Rails) if defined?(Rails)
+    # Should fall back to stdout logger since Rails.logger is nil
+    assert_instance_of Logger, config.logger
+    assert_equal $stdout, config.logger.instance_variable_get(:@logdev).dev
   end
 
-  def test_initializer_logic_does_not_set_logger_when_rails_undefined
-    # Ensure Rails is not defined
-    rails_backup = nil
-    if defined?(Rails)
-      rails_backup = Rails
-      Object.send(:remove_const, :Rails)
-    end
+  def test_configuration_falls_back_when_rails_not_available
+    # Temporarily hide Rails constant
+    rails_backup = Object.send(:remove_const, :Rails) if defined?(Rails)
 
-    # Simulate the railtie initializer logic
-    Sidekiq::MemoryLogger.configuration.logger = Rails.logger if defined?(Rails.logger)
+    # Create new configuration instance
+    config = Sidekiq::MemoryLogger::Configuration.new
 
-    # Verify the logger was not set (should be nil since Rails.logger is not defined)
-    assert_nil Sidekiq::MemoryLogger.configuration.logger
+    # Should fall back to stdout logger
+    assert_instance_of Logger, config.logger
+    assert_equal $stdout, config.logger.instance_variable_get(:@logdev).dev
   ensure
-    # Restore Rails if it was defined
+    # Restore Rails constant
     Object.const_set(:Rails, rails_backup) if rails_backup
   end
 
-  def test_configuration_uses_rails_logger_when_available
-    # Test that the configuration automatically detects and uses Rails.logger
-    rails_logger = "mock_rails_logger"
-    rails_class = Class.new do
-      define_singleton_method(:logger) { rails_logger }
-      define_singleton_method(:respond_to?) { |method| method == :logger }
-    end
+  def test_configuration_falls_back_when_rails_logger_unavailable
+    # Create mock Rails without logger method
+    rails_backup = Object.send(:remove_const, :Rails) if defined?(Rails)
+    rails_mock = Class.new
+    Object.const_set(:Rails, rails_mock)
 
-    # Temporarily define Rails constant
-    Object.const_set(:Rails, rails_class)
-
-    # Create new configuration (should detect Rails.logger)
+    # Create new configuration instance
     config = Sidekiq::MemoryLogger::Configuration.new
 
-    # Verify Rails.logger was set as default
-    assert_equal rails_logger, config.logger
+    # Should fall back to stdout logger since Rails doesn't respond to logger
+    assert_instance_of Logger, config.logger
+    assert_equal $stdout, config.logger.instance_variable_get(:@logdev).dev
   ensure
-    # Clean up the Rails constant
-    Object.send(:remove_const, :Rails) if defined?(Rails)
+    # Restore Rails constant
+    Object.send(:remove_const, :Rails)
+    Object.const_set(:Rails, rails_backup) if rails_backup
   end
 end
