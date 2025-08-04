@@ -9,11 +9,12 @@ module Sidekiq
     class Error < StandardError; end
 
     class Configuration
-      attr_accessor :logger, :callback
+      attr_accessor :logger, :callback, :queues
 
       def initialize
         @logger = default_logger
         @callback = default_callback
+        @queues = []
       end
 
       private
@@ -53,6 +54,8 @@ module Sidekiq
       end
 
       def call(worker_instance, job, queue)
+        return yield if should_skip_queue?(queue)
+
         start_mem = GetProcessMem.new.mb
 
         begin
@@ -67,6 +70,13 @@ module Sidekiq
             @config.logger.error("Sidekiq memory logger callback failed: #{e.message}")
           end
         end
+      end
+
+      private
+
+      def should_skip_queue?(queue)
+        return false if @config.queues.empty?
+        !@config.queues.include?(queue)
       end
     end
   end

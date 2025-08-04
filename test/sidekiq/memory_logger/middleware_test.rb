@@ -132,4 +132,52 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
 
     assert_nil callback_args
   end
+
+  def test_middleware_skips_queues_not_in_config
+    callback_calls = []
+    config = Sidekiq::MemoryLogger::Configuration.new
+    config.queues = ["important", "critical"]
+    config.callback = ->(job_class, queue, memory_diff, args) do
+      callback_calls << [job_class, queue, memory_diff, args]
+    end
+
+    middleware = Sidekiq::MemoryLogger::Middleware.new(config)
+    middleware.call(nil, @job, "unimportant_queue") { sleep 0.01 }
+
+    assert_equal 0, callback_calls.length
+  end
+
+  def test_middleware_processes_queues_in_config
+    callback_calls = []
+    config = Sidekiq::MemoryLogger::Configuration.new
+    config.queues = ["test_queue", "critical"]
+    config.callback = ->(job_class, queue, memory_diff, args) do
+      callback_calls << [job_class, queue, memory_diff, args]
+    end
+
+    middleware = Sidekiq::MemoryLogger::Middleware.new(config)
+    middleware.call(nil, @job, "test_queue") { sleep 0.01 }
+
+    assert_equal 1, callback_calls.length
+    job_class, queue, _memory_diff, _args = callback_calls.first
+    assert_equal "TestJob", job_class
+    assert_equal "test_queue", queue
+  end
+
+  def test_middleware_processes_all_queues_when_empty_config
+    callback_calls = []
+    config = Sidekiq::MemoryLogger::Configuration.new
+    config.queues = []
+    config.callback = ->(job_class, queue, memory_diff, args) do
+      callback_calls << [job_class, queue, memory_diff, args]
+    end
+
+    middleware = Sidekiq::MemoryLogger::Middleware.new(config)
+    middleware.call(nil, @job, "any_queue") { sleep 0.01 }
+
+    assert_equal 1, callback_calls.length
+    job_class, queue, _memory_diff, _args = callback_calls.first
+    assert_equal "TestJob", job_class
+    assert_equal "any_queue", queue
+  end
 end

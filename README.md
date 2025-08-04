@@ -51,6 +51,10 @@ Sidekiq::MemoryLogger.configure do |config|
   # Change the logger (default uses Rails.logger if available, otherwise stdout)
   config.logger = MyCustomLogger.new
   
+  # Specify which queues to monitor (empty array monitors all queues)
+  config.queues = ["critical", "mailers"]  # Only monitor these queues
+  # config.queues = []  # Monitor all queues (default)
+  
   # Replace the default logging callback with custom behavior
   # The callback now receives job arguments as the 4th parameter
   config.callback = ->(job_class, queue, memory_diff_mb, args) do
