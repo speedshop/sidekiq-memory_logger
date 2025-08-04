@@ -3,7 +3,7 @@
 require_relative "lib/sidekiq/memory_logger/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "sidekiq-memory-logger"
+  spec.name = "sidekiq-memory_logger"
   spec.version = Sidekiq::MemoryLogger::VERSION
   spec.authors = ["Nate Berkopec"]
   spec.email = ["nate.berkopec@speedshop.co"]
