@@ -38,8 +38,7 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     middleware.call(nil, @job, @queue) { sleep 0.01 }
 
     log_content = log_output.string
-    assert_includes log_content, "Job TestJob on queue test_queue used"
-    assert_includes log_content, "MB"
+    assert_includes log_content, "[MemoryLogger] job=TestJob queue=test_queue memory_mb="
   end
 
   def test_middleware_handles_exceptions

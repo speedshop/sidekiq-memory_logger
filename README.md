@@ -12,7 +12,7 @@ Memory measurement is handled by the [get_process_mem](https://github.com/zomboc
 
 By default, this gem just logs at `info` level for every job:
 ```
-Job MyJob on queue default used 15.2 MB
+[MemoryLogger] job=MyJob queue=default memory_mb=15.2
 ```
 
 We recommend using logs as the basis for your investigation, but you can also parse this log and create a metric (e.g. with Sumo or Datadog) or change the callback we use (see Configuration below) to create metrics.
@@ -103,7 +103,7 @@ Sidekiq::MemoryLogger.configure do |config|
   
   # The default callback logs memory usage like this:
   # config.callback = ->(job_class, queue, memory_diff_mb, args) do
-  #   config.logger.info("Job #{job_class} on queue #{queue} used #{memory_diff_mb} MB")
+  #   config.logger.info("[MemoryLogger] job=#{job_class} queue=#{queue} memory_mb=#{memory_diff_mb}")
   # end
   
   # If you want custom metrics AND logging, include both in your callback:
