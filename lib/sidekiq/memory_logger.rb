@@ -47,8 +47,6 @@ module Sidekiq
     end
 
     class Middleware
-      include Sidekiq::ServerMiddleware
-
       def initialize(config = nil)
         @memory_logger_config = config || MemoryLogger.configuration
       end
