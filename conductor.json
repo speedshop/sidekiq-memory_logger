@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "setup": "mise exec -- bundle install"
+  }
+}
