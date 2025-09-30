@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "active_job"
 
 class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
   def setup
@@ -179,5 +180,61 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     job_class, queue, _memory_diff, _objects_diff, _args = callback_calls.first
     assert_equal "TestJob", job_class
     assert_equal "any_queue", queue
+  end
+
+  def test_middleware_uses_wrapped_class_for_activejob
+    callback_calls = []
+    activejob_wrapped = {
+      "class" => "ActiveJob::QueueAdapters::SidekiqAdapter::JobWrapper",
+      "wrapped" => "ProcessCompanyDataJob",
+      "args" => [{"job_class" => "ProcessCompanyDataJob"}]
+    }
+    config = Sidekiq::MemoryLogger::Configuration.new
+    config.callback = ->(job_class, queue, memory_diff, objects_diff, args) do
+      callback_calls << [job_class, queue, memory_diff, objects_diff, args]
+    end
+
+    middleware = Sidekiq::MemoryLogger::Middleware.new(config)
+    middleware.call(nil, activejob_wrapped, @queue) { sleep 0.01 }
+
+    assert_equal 1, callback_calls.length
+    job_class, _queue, _memory_diff, _objects_diff, _args = callback_calls.first
+    assert_equal "ProcessCompanyDataJob", job_class
+  end
+
+  def test_middleware_with_real_activejob_class
+    test_job_class = Class.new(ActiveJob::Base) do
+      queue_as :default
+
+      def perform(arg1, arg2)
+        arg1 + arg2
+      end
+
+      def self.name
+        "TestActiveJob"
+      end
+    end
+
+    callback_calls = []
+    config = Sidekiq::MemoryLogger::Configuration.new
+    config.callback = ->(job_class, queue, memory_diff, objects_diff, args) do
+      callback_calls << [job_class, queue, memory_diff, objects_diff, args]
+    end
+
+    serialized_job = test_job_class.new(1, 2).serialize
+    job_hash = {
+      "class" => "ActiveJob::QueueAdapters::SidekiqAdapter::JobWrapper",
+      "wrapped" => "TestActiveJob",
+      "queue" => "default",
+      "args" => [serialized_job]
+    }
+
+    middleware = Sidekiq::MemoryLogger::Middleware.new(config)
+    middleware.call(nil, job_hash, "default") { sleep 0.01 }
+
+    assert_equal 1, callback_calls.length
+    job_class, queue, _memory_diff, _objects_diff, _args = callback_calls.first
+    assert_equal "TestActiveJob", job_class
+    assert_equal "default", queue
   end
 end
