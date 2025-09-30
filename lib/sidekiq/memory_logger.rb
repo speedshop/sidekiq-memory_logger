@@ -68,7 +68,7 @@ module Sidekiq
           objects_diff = end_objects - start_objects
 
           begin
-            @memory_logger_config.callback.call(job["class"], queue, memory_diff, objects_diff, job["args"])
+            @memory_logger_config.callback.call(job["wrapped"] || job["class"], queue, memory_diff, objects_diff, job["args"])
           rescue => e
             @memory_logger_config.logger.error("Sidekiq memory logger callback failed: #{e.message}")
           end
