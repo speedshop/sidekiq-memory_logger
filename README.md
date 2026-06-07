@@ -13,8 +13,6 @@ By default, this gem just logs at `info` level for every job:
 [MemoryLogger] job="MyJob" queue="default" memory_mb="15.2" objects="12345"
 ```
 
-Values are quoted and escaped so parsers like Datadog Grok can handle namespaced jobs (for example, `Admin::ReportJob`) and values containing spaces or quotes.
-
 You can also parse this log and create a metric (e.g. with Sumo or Datadog) or change the callback we use (see Configuration below) to create metrics.
 
 > [!WARNING]
