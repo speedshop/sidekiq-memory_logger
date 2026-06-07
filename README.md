@@ -10,10 +10,10 @@ Memory measurement is handled by the [get_process_mem](https://github.com/zomboc
 
 By default, this gem just logs at `info` level for every job:
 ```
-[MemoryLogger] job="MyJob" queue="default" memory_mb=15.2 objects=12345
+[MemoryLogger] job="MyJob" queue="default" memory_mb="15.2" objects="12345"
 ```
 
-String fields are quoted and JSON-escaped so parsers like Datadog Grok can handle namespaced jobs (for example, `Admin::ReportJob`) and values containing spaces or quotes.
+Values are quoted and escaped so parsers like Datadog Grok can handle namespaced jobs (for example, `Admin::ReportJob`) and values containing spaces or quotes.
 
 You can also parse this log and create a metric (e.g. with Sumo or Datadog) or change the callback we use (see Configuration below) to create metrics.
 
@@ -103,7 +103,9 @@ Sidekiq::MemoryLogger.configure do |config|
 
   # The default callback logs memory usage like this:
   # config.callback = ->(job_class, queue, memory_diff_mb, objects_diff, args) do
-  #   config.logger.info("[MemoryLogger] job=#{job_class.to_json} queue=#{queue.to_json} memory_mb=#{memory_diff_mb} objects=#{objects_diff}")
+  #   fields = {job: job_class, queue: queue, memory_mb: memory_diff_mb, objects: objects_diff}
+  #   log_fields = fields.map { |key, value| "#{key}=#{value.to_s.dump}" }.join(" ")
+  #   config.logger.info("[MemoryLogger] #{log_fields}")
   # end
 
   # If you want custom metrics AND logging, include both in your callback:

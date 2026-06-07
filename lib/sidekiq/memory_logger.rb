@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "get_process_mem"
-require "json"
 require "sidekiq"
 require_relative "memory_logger/version"
 
@@ -32,12 +31,16 @@ module Sidekiq
 
       def default_callback
         ->(job_class, queue, memory_diff_mb, objects_diff, args) do
-          @logger.info("[MemoryLogger] job=#{quoted_log_value(job_class)} queue=#{quoted_log_value(queue)} memory_mb=#{memory_diff_mb} objects=#{objects_diff}")
+          @logger.info("[MemoryLogger] #{log_fields(job: job_class, queue: queue, memory_mb: memory_diff_mb, objects: objects_diff)}")
         end
       end
 
+      def log_fields(fields)
+        fields.map { |key, value| "#{key}=#{quoted_log_value(value)}" }.join(" ")
+      end
+
       def quoted_log_value(value)
-        JSON.generate(value.to_s)
+        value.to_s.dump
       end
     end
 
