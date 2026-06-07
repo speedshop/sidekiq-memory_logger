@@ -31,8 +31,16 @@ module Sidekiq
 
       def default_callback
         ->(job_class, queue, memory_diff_mb, objects_diff, args) do
-          @logger.info("[MemoryLogger] job=#{job_class} queue=#{queue} memory_mb=#{memory_diff_mb} objects=#{objects_diff}")
+          @logger.info("[MemoryLogger] #{log_fields(job: job_class, queue: queue, memory_mb: memory_diff_mb, objects: objects_diff)}")
         end
+      end
+
+      def log_fields(fields)
+        fields.map { |key, value| "#{key}=#{quoted_log_value(value)}" }.join(" ")
+      end
+
+      def quoted_log_value(value)
+        value.to_s.dump
       end
     end
 

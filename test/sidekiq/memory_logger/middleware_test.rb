@@ -39,8 +39,26 @@ class TestSidekiqMemoryLoggerMiddleware < Minitest::Test
     middleware.call(nil, @job, @queue) { sleep 0.01 }
 
     log_content = log_output.string
-    assert_includes log_content, "[MemoryLogger] job=TestJob queue=test_queue memory_mb="
-    assert_includes log_content, "objects="
+    assert_includes log_content, "[MemoryLogger] job=\"TestJob\" queue=\"test_queue\" memory_mb=\""
+    assert_includes log_content, "objects=\""
+  end
+
+  def test_middleware_escapes_default_callback_string_fields
+    log_output = StringIO.new
+    test_logger = Logger.new(log_output)
+    config = Sidekiq::MemoryLogger::Configuration.new
+    config.logger = test_logger
+    config.callback = config.send(:default_callback)
+    job = {"class" => "Admin::ReportJob", "args" => []}
+
+    middleware = Sidekiq::MemoryLogger::Middleware.new(config)
+    middleware.call(nil, job, "queue \"fast\"\nnext") { sleep 0.01 }
+
+    log_content = log_output.string
+    assert_includes log_content, "job=\"Admin::ReportJob\""
+    assert_includes log_content, "queue=\"queue \\\"fast\\\"\\nnext\""
+    assert_match(/memory_mb="-?\d+(\.\d+)?"/, log_content)
+    assert_match(/objects="\d+"/, log_content)
   end
 
   def test_middleware_handles_exceptions
